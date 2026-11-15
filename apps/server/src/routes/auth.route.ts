@@ -4,14 +4,20 @@ import {
     postRegister,
     postLogin,
     postLogout,
-    getMe
+    getMe,
+    postForgotPassword,
+    postResetPassword,
+    postRefreshToken
 } from '../controllers/auth.controller.js';
 import {
     ConfirmEmailSchema,
     RegisterSchema,
     LoginSchema,
     LogoutSchema,
-    MeSchema
+    MeSchema,
+    ForgotPasswordSchema,
+    ResetPasswordSchema,
+    RefreshTokenSchema
 } from '../common/schemas/index.js';
 import { authGuard } from '../middleware/auth.middleware.js';
 
@@ -35,6 +41,21 @@ export default (
         postLogout
     );
     fastify.get('/me', { schema: MeSchema, preHandler: authGuard }, getMe);
+    fastify.post(
+        '/forgot-password',
+        { schema: ForgotPasswordSchema },
+        postForgotPassword
+    );
+    fastify.post(
+        '/reset-password/:token',
+        { schema: ResetPasswordSchema },
+        postResetPassword
+    );
+    fastify.post(
+        '/refresh_token',
+        { schema: RefreshTokenSchema },
+        postRefreshToken
+    );
 
     done();
 };

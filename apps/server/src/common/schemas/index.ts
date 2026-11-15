@@ -121,3 +121,60 @@ export type MeType = {
         | Static<(typeof MeSchema.response)['200']>
         | Static<(typeof MeSchema.response)['500']>;
 };
+
+export const ForgotPasswordSchema = {
+    body: Type.Object({
+        email: Type.String({ format: 'email' })
+    }),
+    response: {
+        200: OkResponse,
+        400: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type ForgotPasswordType = {
+    Body: Static<typeof ForgotPasswordSchema.body>;
+    Reply:
+        | Static<(typeof ForgotPasswordSchema.response)['200']>
+        | Static<(typeof ForgotPasswordSchema.response)['400']>
+        | Static<(typeof ForgotPasswordSchema.response)['500']>;
+};
+
+export const ResetPasswordSchema = {
+    body: Type.Object({
+        password: Type.String({ minLength: 6 })
+    }),
+    params: Type.Object({
+        token: Type.String({ format: 'uuid' })
+    }),
+    response: {
+        200: OkResponse,
+        400: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type ResetPasswordType = {
+    Params: Static<typeof ResetPasswordSchema.params>;
+    Body: Static<typeof ResetPasswordSchema.body>;
+    Reply:
+        | Static<(typeof ResetPasswordSchema.response)['200']>
+        | Static<(typeof ResetPasswordSchema.response)['400']>
+        | Static<(typeof ResetPasswordSchema.response)['500']>;
+};
+
+export const RefreshTokenSchema = {
+    response: {
+        200: AccessTokenResponse,
+        400: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type RefreshTokenType = {
+    Reply:
+        | Static<(typeof RefreshTokenSchema.response)['200']>
+        | Static<(typeof RefreshTokenSchema.response)['400']>
+        | Static<(typeof RefreshTokenSchema.response)['500']>;
+};

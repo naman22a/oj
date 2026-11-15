@@ -21,11 +21,12 @@ import { Eye, EyeOff } from 'lucide-react';
 import { loginSchema } from '@/schemas';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import API from '@/api';
-import type { LoginResponse } from '@/interfaces';
+import type { OkResponse, LoginResponse } from '@/interfaces';
 import { toast } from '@/components/ui/toast';
 import axios from 'axios';
 import { setAccessToken } from '@/global';
 import { useNavigate } from 'react-router';
+import { isValidEmail } from '../utils';
 
 const Login: React.FC = () => {
     const [showPassword, setShowPassword] = React.useState(false);
@@ -40,6 +41,11 @@ const Login: React.FC = () => {
         mutationKey: ['auth', 'login'],
         mutationFn: async (data: z.infer<typeof loginSchema>) =>
             await API.post<LoginResponse>('/auth/login', data)
+    });
+    const forgotPasswordMutation = useMutation({
+        mutationKey: ['auth', 'forgot-password'],
+        mutationFn: async (email: string) =>
+            await API.post<OkResponse>('/auth/forgot-password', { email })
     });
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -73,6 +79,39 @@ const Login: React.FC = () => {
                     type: 'error'
                 });
             }
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!form.getValues('email')) {
+            form.setError('email', { message: 'Email is required' });
+            return;
+        }
+
+        if (!isValidEmail(form.getValues('email'))) {
+            form.setError('email', { message: 'Invalid email' });
+            return;
+        }
+
+        try {
+            const res = await forgotPasswordMutation.mutateAsync(
+                form.getValues('email')
+            );
+
+            if (res.status === 200) {
+                toast.add({
+                    title: 'Please check your email',
+                    type: 'success'
+                });
+            } else {
+                throw new Error(res.data.errors?.toString());
+            }
+        } catch (error) {
+            console.error(error);
+            toast.add({
+                title: 'Something went wrong',
+                type: 'error'
+            });
         }
     };
 
@@ -170,6 +209,15 @@ const Login: React.FC = () => {
                                                 </span>
                                             </Button>
                                         </div>
+                                        <Button
+                                            variant="link"
+                                            className="flex justify-start p-0 underline text-amber-500"
+                                            onClick={() =>
+                                                handleForgotPassword()
+                                            }
+                                        >
+                                            Forgot Password ?
+                                        </Button>
                                         {fieldState.invalid && (
                                             <FieldError
                                                 errors={[fieldState.error]}

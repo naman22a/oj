@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import ConfirmEmail from './pages/ConfirmEmail';
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
+import ResetPassword from './pages/ResetPassword';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -32,6 +33,10 @@ const App: React.FC = () => {
                             element={<ConfirmEmail />}
                         />
                         <Route path="/login" element={<Login />} />
+                        <Route
+                            path="/reset-password/:token"
+                            element={<ResetPassword />}
+                        />
                         <Route path="*" element={<NotFound />} />
                     </Routes>
                 </ThemeProvider>

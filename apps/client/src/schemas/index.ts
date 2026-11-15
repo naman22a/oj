@@ -10,3 +10,8 @@ export const loginSchema = z.object({
     email: z.email(),
     password: z.string().min(1)
 });
+
+export const resetPasswordSchema = z.object({
+    password: z.string().min(6),
+    cpassword: z.string().min(6)
+});

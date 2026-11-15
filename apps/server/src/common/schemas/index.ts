@@ -178,3 +178,35 @@ export type RefreshTokenType = {
         | Static<(typeof RefreshTokenSchema.response)['400']>
         | Static<(typeof RefreshTokenSchema.response)['500']>;
 };
+
+export const GetUsersSchema = {
+    response: {
+        200: Type.Array(UserSchema),
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetUsersType = {
+    Reply:
+        | Static<(typeof GetUsersSchema.response)['200']>
+        | Static<(typeof GetUsersSchema.response)['500']>;
+};
+
+export const GetUserSchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    response: {
+        200: UserSchema,
+        404: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetUserType = {
+    Params: Static<typeof GetUserSchema.params>;
+    Reply:
+        | Static<(typeof GetUserSchema.response)['200']>
+        | Static<(typeof GetUserSchema.response)['404']>
+        | Static<(typeof GetUserSchema.response)['500']>;
+};

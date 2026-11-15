@@ -1,5 +1,9 @@
 import { Type, type Static } from '@sinclair/typebox';
 
+// ==========================================
+// COMMON SCHEMAS
+// ==========================================
+
 const DateType = Type.String({ format: 'date-time' });
 
 export const FieldErrorSchema = Type.Object({
@@ -15,6 +19,10 @@ export const OkResponseAndErrors = Type.Object({
     ok: Type.Boolean(),
     errors: Type.Optional(Type.Array(FieldErrorSchema))
 });
+
+// ==========================================
+// AUTH SCHEMAS
+// ==========================================
 
 export const RegisterSchema = {
     body: Type.Object({
@@ -179,6 +187,10 @@ export type RefreshTokenType = {
         | Static<(typeof RefreshTokenSchema.response)['500']>;
 };
 
+// ==========================================
+// USERS SCHEMAS
+// ==========================================
+
 export const GetUsersSchema = {
     response: {
         200: Type.Array(UserSchema),
@@ -216,6 +228,10 @@ export const DifficultySchema = Type.Union([
     Type.Literal('Medium'),
     Type.Literal('Hard')
 ]);
+
+// ==========================================
+// PROBLEMS SCHEMAS
+// ==========================================
 
 export type Difficulty = Static<typeof DifficultySchema>;
 
@@ -533,4 +549,154 @@ export type DeleteProblemType = {
         | Static<(typeof DeleteProblemSchema.response)['200']>
         | Static<(typeof DeleteProblemSchema.response)['404']>
         | Static<(typeof DeleteProblemSchema.response)['500']>;
+};
+
+// ==========================================
+// TAGS SCHEMAS
+// ==========================================
+
+export const TagResponseSchema = Type.Object({
+    id: Type.Number(),
+    name: Type.String(),
+    slug: Type.String(),
+    description: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    createdAt: Type.String({ format: 'date-time' })
+});
+
+export const GetTagsSchema = {
+    response: {
+        200: Type.Array(TagResponseSchema),
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetTagsType = {
+    Reply:
+        | Static<(typeof GetTagsSchema.response)['200']>
+        | Static<(typeof GetTagsSchema.response)['500']>;
+};
+
+export const GetTagSchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    response: {
+        200: TagResponseSchema,
+        404: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetTagType = {
+    Params: Static<typeof GetTagSchema.params>;
+    Reply:
+        | Static<(typeof GetTagSchema.response)['200']>
+        | Static<(typeof GetTagSchema.response)['404']>
+        | Static<(typeof GetTagSchema.response)['500']>;
+};
+
+export const BulkCreateTagsSchema = {
+    body: Type.Object({
+        tags: Type.Array(
+            Type.Object({
+                name: Type.String({ minLength: 1, maxLength: 100 }),
+                slug: Type.String({ minLength: 1, maxLength: 100 }),
+                description: Type.Optional(
+                    Type.Union([
+                        Type.String({ minLength: 1, maxLength: 100 }),
+                        Type.Null()
+                    ])
+                )
+            }),
+            { minItems: 1 }
+        )
+    }),
+    response: {
+        201: Type.Array(TagResponseSchema),
+        409: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type BulkCreateTagsType = {
+    Body: Static<typeof BulkCreateTagsSchema.body>;
+    Reply:
+        | Static<(typeof BulkCreateTagsSchema.response)['201']>
+        | Static<(typeof BulkCreateTagsSchema.response)['409']>
+        | Static<(typeof BulkCreateTagsSchema.response)['500']>;
+};
+
+// ==========================================
+// COMPANIES SCHEMAS
+// ==========================================
+
+export const CompanyResponseSchema = Type.Object({
+    id: Type.Number(),
+    name: Type.String(),
+    slug: Type.String(),
+    logoUrl: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    createdAt: Type.String({ format: 'date-time' })
+});
+
+export const GetCompaniesSchema = {
+    response: {
+        200: Type.Array(CompanyResponseSchema),
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetCompaniesType = {
+    Reply:
+        | Static<(typeof GetCompaniesSchema.response)['200']>
+        | Static<(typeof GetCompaniesSchema.response)['500']>;
+};
+
+export const GetCompanySchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    response: {
+        200: CompanyResponseSchema,
+        404: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetCompanyType = {
+    Params: Static<typeof GetCompanySchema.params>;
+    Reply:
+        | Static<(typeof GetCompanySchema.response)['200']>
+        | Static<(typeof GetCompanySchema.response)['404']>
+        | Static<(typeof GetCompanySchema.response)['500']>;
+};
+
+export const BulkCreateCompaniesSchema = {
+    body: Type.Object({
+        companies: Type.Array(
+            Type.Object({
+                name: Type.String({ minLength: 1, maxLength: 100 }),
+                slug: Type.String({ minLength: 1, maxLength: 100 }),
+                logoUrl: Type.Optional(
+                    Type.Union([
+                        Type.String({ minLength: 1, maxLength: 255 }),
+                        Type.Null()
+                    ])
+                )
+            }),
+            { minItems: 1 }
+        )
+    }),
+    response: {
+        201: Type.Array(CompanyResponseSchema),
+        409: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type BulkCreateCompaniesType = {
+    Body: Static<typeof BulkCreateCompaniesSchema.body>;
+    Reply:
+        | Static<(typeof BulkCreateCompaniesSchema.response)['201']>
+        | Static<(typeof BulkCreateCompaniesSchema.response)['409']>
+        | Static<(typeof BulkCreateCompaniesSchema.response)['500']>;
 };

@@ -10,6 +10,8 @@ import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
 import usersRoutes from './routes/users.route.js';
 import problemsRoutes from './routes/problems.route.js';
+import tagsRoutes from './routes/tags.route.ts';
+import companiesRoutes from './routes/companies.route.ts';
 
 declare module 'fastify' {
     interface FastifyRequest {
@@ -45,6 +47,8 @@ fastify.register(
         instance.register(authRoutes, { prefix: '/auth' });
         instance.register(usersRoutes, { prefix: '/users' });
         instance.register(problemsRoutes, { prefix: '/problems' });
+        instance.register(tagsRoutes, { prefix: '/tags' });
+        instance.register(companiesRoutes, { prefix: '/companies' });
     },
     { prefix: '/api' }
 );

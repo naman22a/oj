@@ -2,6 +2,7 @@ import {
     Collection,
     Entity,
     OneToMany,
+    OptionalProps,
     Property,
     Unique
 } from '@mikro-orm/core';
@@ -10,6 +11,8 @@ import { ProblemTag } from './problem-tag.model.js';
 
 @Entity({ tableName: 'tags', schema: 'problems' })
 export class Tag extends NumericIdEntity {
+    [OptionalProps]?: 'description' | 'createdAt';
+
     @Property({ length: 50 })
     @Unique()
     name!: string;

@@ -31,6 +31,7 @@ import {
 } from '../services/token.js';
 import jwt from 'jsonwebtoken';
 
+// POST /api/auth/register
 export const postRegister: Fastify.RouteHandler<RegisterType> = async (
     req,
     reply
@@ -97,6 +98,7 @@ export const postRegister: Fastify.RouteHandler<RegisterType> = async (
     }
 };
 
+// POST /api/auth/confirm-email/:token
 export const postConfirmEmail: Fastify.RouteHandler<ConfirmEmailType> = async (
     req,
     reply
@@ -156,6 +158,7 @@ export const postConfirmEmail: Fastify.RouteHandler<ConfirmEmailType> = async (
     }
 };
 
+// POST /api/auth/login
 export const postLogin: Fastify.RouteHandler<LoginType> = async (
     req,
     reply
@@ -220,6 +223,7 @@ export const postLogin: Fastify.RouteHandler<LoginType> = async (
     }
 };
 
+// POST /api/auth/logout
 export const postLogout: Fastify.RouteHandler<LogoutType> = async (
     req,
     reply
@@ -251,6 +255,7 @@ export const postLogout: Fastify.RouteHandler<LogoutType> = async (
     }
 };
 
+// GET /api/auth/me
 export const getMe: Fastify.RouteHandler<MeType> = async (req, reply) => {
     try {
         const em = await getEM();
@@ -285,6 +290,7 @@ export const getMe: Fastify.RouteHandler<MeType> = async (req, reply) => {
     }
 };
 
+// POST /api/auth/forgot-password
 export const postForgotPassword: Fastify.RouteHandler<
     ForgotPasswordType
 > = async (req, reply) => {
@@ -317,6 +323,7 @@ export const postForgotPassword: Fastify.RouteHandler<
     }
 };
 
+// POST /api/auth/reset-password/:token
 export const postResetPassword: Fastify.RouteHandler<
     ResetPasswordType
 > = async (req, reply) => {
@@ -374,6 +381,7 @@ export const postResetPassword: Fastify.RouteHandler<
     }
 };
 
+// POST /api/auth/refresh_token
 export const postRefreshToken: Fastify.RouteHandler<RefreshTokenType> = async (
     req,
     reply

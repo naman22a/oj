@@ -3,6 +3,7 @@ import { getEM } from '../db/index.ts';
 import type { GetUsersType, GetUserType } from '../common/schemas/index.ts';
 import { User } from '../models/user.model.ts';
 
+// GET /api/users
 export const getUsers: Fastify.RouteHandler<GetUsersType> = async (
     _req,
     reply
@@ -44,6 +45,7 @@ export const getUsers: Fastify.RouteHandler<GetUsersType> = async (
     }
 };
 
+// GET /api/users/:id
 export const getUser: Fastify.RouteHandler<GetUserType> = async (
     req,
     reply

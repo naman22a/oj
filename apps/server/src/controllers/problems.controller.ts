@@ -43,6 +43,7 @@ const serializeComment = (c: Comment, problemId: number): CommentDTO => ({
         : []
 });
 
+// GET /api/problems
 export const getProblems: Fastify.RouteHandler<GetProblemsType> = async (
     _req,
     reply
@@ -73,6 +74,7 @@ export const getProblems: Fastify.RouteHandler<GetProblemsType> = async (
     }
 };
 
+// GET /api/problems/:id
 export const getProblem: Fastify.RouteHandler<GetProblemType> = async (
     req,
     reply
@@ -193,6 +195,7 @@ export const getProblem: Fastify.RouteHandler<GetProblemType> = async (
     }
 };
 
+// POST /api/problems
 export const createProblem: Fastify.RouteHandler<CreateProblemType> = async (
     req,
     reply
@@ -430,6 +433,7 @@ export const createProblem: Fastify.RouteHandler<CreateProblemType> = async (
     }
 };
 
+// PUT /api/problems/:id
 export const updateProblem: Fastify.RouteHandler<UpdateProblemType> = async (
     req,
     reply
@@ -713,6 +717,7 @@ export const updateProblem: Fastify.RouteHandler<UpdateProblemType> = async (
     }
 };
 
+// DELETE /api/problems/:id
 export const deleteProblem: Fastify.RouteHandler<DeleteProblemType> = async (
     req,
     reply

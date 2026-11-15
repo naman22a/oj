@@ -5,6 +5,7 @@ import { __prod__ } from './common/constants/index.js';
 import { getORM } from './db/index.js';
 import fastifyCookie from '@fastify/cookie';
 
+// IMPORT ROUTES
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
 import usersRoutes from './routes/users.route.js';
@@ -16,6 +17,7 @@ declare module 'fastify' {
     }
 }
 
+// CONSTANTS
 const fastify = Fastify({
     logger: {
         transport: {
@@ -29,11 +31,14 @@ const fastify = Fastify({
 });
 const port = parseInt(process.env.PORT || '', 10) || 5000;
 
+// MIDDLEWARE
 fastify.register(cors, {
     origin: process.env.CLIENT_URL,
     credentials: true
 });
 fastify.register(fastifyCookie);
+
+// ROUTES
 fastify.register(
     async (instance) => {
         instance.register(healthRoutes, { prefix: '/health' });
@@ -44,8 +49,10 @@ fastify.register(
     { prefix: '/api' }
 );
 
+// START THE SERVER
 const start = async () => {
     try {
+        // DB CONNECTION
         const orm = await getORM();
         await orm.connect();
 

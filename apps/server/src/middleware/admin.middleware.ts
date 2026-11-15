@@ -19,6 +19,8 @@ export const adminGuard: preHandlerHookHandler = async (req, reply) => {
     try {
         const token = authorization.split(' ')[1];
         payload = jwt.verify(token!, secret) as unknown as AccessTokenPayload;
+
+        // check is admin
         const em = await getEM();
         const user = await em.findOne(User, { id: payload.userId });
         if (!user || !user?.isAdmin) {

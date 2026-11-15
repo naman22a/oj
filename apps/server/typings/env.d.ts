@@ -8,6 +8,9 @@ declare global {
             DATABASE_URL: string;
             RESEND_API_KEY: string;
             REDIS_URL: string;
+            ACCESS_TOKEN_SECRET: string;
+            REFRESH_TOKEN_SECRET: string;
+            COOKIE_DOMAIN: string;
         }
     }
 }

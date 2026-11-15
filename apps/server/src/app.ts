@@ -3,9 +3,16 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { __prod__ } from './common/constants/index.js';
 import { getORM } from './db/index.js';
+import fastifyCookie from '@fastify/cookie';
 
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
+
+declare module 'fastify' {
+    interface FastifyRequest {
+        userId?: number;
+    }
+}
 
 const fastify = Fastify({
     logger: {
@@ -24,6 +31,7 @@ fastify.register(cors, {
     origin: process.env.CLIENT_URL,
     credentials: true
 });
+fastify.register(fastifyCookie);
 fastify.register(
     async (instance) => {
         instance.register(healthRoutes, { prefix: '/health' });

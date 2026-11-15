@@ -21,10 +21,10 @@ export class User extends NumericIdEntity {
     @Property({ fieldName: 'password', hidden: true })
     passwordHash!: string;
 
-    @Property({ fieldName: 'email_verified', default: false })
+    @Property({ fieldName: 'email_verified', default: false, hidden: true })
     emailVerified = false;
 
-    @Property({ fieldName: 'token_version', default: 0 })
+    @Property({ fieldName: 'token_version', default: 0, hidden: true })
     tokenVersion = 0;
 
     @Property({ fieldName: 'full_name', nullable: true })

@@ -5,7 +5,9 @@
     "scripts": {
         "start": "node dist/app.js",
         "dev": "tsx watch src/app.ts",
-        "build": "tsc"
+        "build": "tsc",
+        "mg:create": "mikro-orm migration:create",
+        "mg:up": "mikro-orm migration:up"
     },
     "keywords": [],
     "devEngines": {
@@ -27,11 +29,29 @@
         "@types/node": "^26.6.6",
         "pino-pretty": "^13.2.0",
         "tsx": "^4.23.15",
-        "typescript": "^7.0.2"
+        "typescript": "^7.0.2",
+        "@mikro-orm/cli": "^5.7.13"
     },
     "dependencies": {
         "@fastify/cors": "^11.4.3",
+        "@mikro-orm/core": "^5.7.13",
+        "@mikro-orm/migrations": "^5.7.13",
+        "@mikro-orm/postgresql": "^5.7.13",
+        "@mikro-orm/reflection": "^5.7.13",
+        "@mikro-orm/sql-highlighter": "^1.0.1",
+        "@sinclair/typebox": "^0.34.52",
+        "argon2": "^0.45.2",
         "dotenv": "^18.0.10",
-        "fastify": "^5.12.8"
+        "fastify": "^5.12.8",
+        "ioredis": "^6.0.0",
+        "resend": "^6.38.1",
+        "uuid": "^14.0.3"
+    },
+    "mikro-orm": {
+        "useTsx": true,
+        "configPaths": [
+            "./src/config/mikro-orm.config.ts",
+            "./dist/config/mikro-orm.config.js"
+        ]
     }
 }

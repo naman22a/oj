@@ -5,6 +5,9 @@ declare global {
             PORT: string;
             CLIENT_URL: string;
             SERVER_URL: string;
+            DATABASE_URL: string;
+            RESEND_API_KEY: string;
+            REDIS_URL: string;
         }
     }
 }

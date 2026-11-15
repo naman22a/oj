@@ -2,8 +2,10 @@ import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { __prod__ } from './common/constants/index.js';
+import { getORM } from './db/index.js';
 
 import healthRoutes from './routes/health.route.js';
+import authRoutes from './routes/auth.route.js';
 
 const fastify = Fastify({
     logger: {
@@ -25,12 +27,16 @@ fastify.register(cors, {
 fastify.register(
     async (instance) => {
         instance.register(healthRoutes, { prefix: '/health' });
+        instance.register(authRoutes, { prefix: '/auth' });
     },
     { prefix: '/api' }
 );
 
 const start = async () => {
     try {
+        const orm = await getORM();
+        await orm.connect();
+
         await fastify.listen({
             port,
             host: __prod__ ? '0.0.0.0' : '127.0.0.1'

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { getUser, getUsers } from '../controllers/users.controller.ts';
-import { GetUsersSchema, MeSchema } from '../common/schemas/index.ts';
+import { GetUserSchema, GetUsersSchema } from '../common/schemas/index.ts';
 
 export default (
     fastify: FastifyInstance,
@@ -10,6 +10,6 @@ export default (
     done: (err?: Error) => void
 ) => {
     fastify.get('/', { schema: GetUsersSchema }, getUsers);
-    fastify.get('/:id', { schema: MeSchema }, getUser);
+    fastify.get('/:id', { schema: GetUserSchema }, getUser);
     done();
 };

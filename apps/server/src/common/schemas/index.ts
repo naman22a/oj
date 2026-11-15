@@ -210,3 +210,327 @@ export type GetUserType = {
         | Static<(typeof GetUserSchema.response)['404']>
         | Static<(typeof GetUserSchema.response)['500']>;
 };
+
+export const DifficultySchema = Type.Union([
+    Type.Literal('Easy'),
+    Type.Literal('Medium'),
+    Type.Literal('Hard')
+]);
+
+export type Difficulty = Static<typeof DifficultySchema>;
+
+export const ProblemSchema = Type.Object({
+    id: Type.Number(),
+    title: Type.String(),
+    slug: Type.String(),
+    description: Type.String(),
+    difficulty: DifficultySchema,
+    acceptanceRate: Type.String(),
+    totalSubmissions: Type.Number(),
+    totalAccepted: Type.Number(),
+    likes: Type.Number(),
+    dislikes: Type.Number(),
+    constraints: Type.String(),
+    hints: Type.Array(Type.String()),
+    similarProblems: Type.Array(Type.Number()),
+    createdById: Type.Number(),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' })
+});
+
+export type Problem = Static<typeof ProblemSchema>;
+
+export const GetProblemsSchema = {
+    response: {
+        200: Type.Array(ProblemSchema),
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetProblemsType = {
+    Reply:
+        | Static<(typeof GetProblemsSchema.response)['200']>
+        | Static<(typeof GetProblemsSchema.response)['500']>;
+};
+
+// --- Tags & Companies (Join Entities) ---
+// Assuming Tag and Company have standard { id, name, slug? } shapes; adjust if needed
+export const TagSchema = Type.Object({
+    id: Type.Number(),
+    name: Type.String(),
+    slug: Type.Optional(Type.String())
+});
+
+export const ProblemTagSchema = Type.Object({
+    problemId: Type.Number(),
+    tagId: Type.Number(),
+    tag: Type.Optional(TagSchema)
+});
+
+export const CompanySchema = Type.Object({
+    id: Type.Number(),
+    name: Type.String(),
+    slug: Type.Optional(Type.String())
+});
+
+export const ProblemCompanySchema = Type.Object({
+    problemId: Type.Number(),
+    companyId: Type.Number(),
+    frequency: Type.Number(),
+    lastAskedDate: Type.Optional(
+        Type.Union([Type.String({ format: 'date' }), Type.Null()])
+    ),
+    company: Type.Optional(CompanySchema)
+});
+
+// --- Test Cases ---
+export const TestCaseSchema = Type.Object({
+    id: Type.Number(),
+    problemId: Type.Number(),
+    input: Type.String(),
+    expectedOutput: Type.String(),
+    isSample: Type.Boolean(),
+    isActive: Type.Boolean(),
+    explanation: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    createdAt: Type.String({ format: 'date-time' })
+});
+
+// --- Editorials ---
+export const EditorialSchema = Type.Object({
+    id: Type.Number(),
+    problemId: Type.Number(),
+    title: Type.String({ maxLength: 255 }),
+    approach: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    content: Type.String(),
+    codeSnippets: Type.Optional(
+        Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])
+    ),
+    timeComplexity: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    spaceComplexity: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    isOfficial: Type.Boolean(),
+    createdById: Type.Number(),
+    createdAt: Type.String({ format: 'date-time' }),
+    updatedAt: Type.String({ format: 'date-time' })
+});
+
+// --- Comments (Recursive for replies) ---
+export const CommentSchema = Type.Recursive((This) =>
+    Type.Object({
+        id: Type.Number(),
+        problemId: Type.Number(),
+        userId: Type.Number(),
+        parentId: Type.Optional(Type.Union([Type.Number(), Type.Null()])),
+        title: Type.Optional(
+            Type.Union([Type.String({ maxLength: 255 }), Type.Null()])
+        ),
+        content: Type.String(),
+        isSolution: Type.Boolean(),
+        language: Type.Optional(
+            Type.Union([Type.String({ maxLength: 50 }), Type.Null()])
+        ),
+        upvotes: Type.Number(),
+        downvotes: Type.Number(),
+        isPinned: Type.Boolean(),
+        isDeleted: Type.Boolean(),
+        createdAt: Type.String({ format: 'date-time' }),
+        updatedAt: Type.String({ format: 'date-time' }),
+        replies: Type.Optional(Type.Array(This))
+    })
+);
+
+// --- User Interactions (Bookmarks & Likes) ---
+export const BookmarkSchema = Type.Object({
+    userId: Type.Number(),
+    problemId: Type.Number(),
+    notes: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    createdAt: Type.String({ format: 'date-time' })
+});
+
+export const ProblemLikeSchema = Type.Object({
+    userId: Type.Number(),
+    problemId: Type.Number(),
+    isLike: Type.Boolean(),
+    createdAt: Type.String({ format: 'date-time' })
+});
+
+export const ExtendedProblemSchema = Type.Composite([
+    ProblemSchema,
+    Type.Object({
+        problemTags: Type.Array(ProblemTagSchema),
+        problemCompanies: Type.Array(ProblemCompanySchema),
+        testCases: Type.Array(TestCaseSchema),
+        editorials: Type.Array(EditorialSchema),
+        comments: Type.Array(CommentSchema),
+        bookmarks: Type.Array(BookmarkSchema),
+        problemLikes: Type.Array(ProblemLikeSchema)
+    })
+]);
+
+export type ExtendedProblem = Static<typeof ExtendedProblemSchema>;
+
+export const GetProblemSchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    response: {
+        200: ExtendedProblemSchema,
+        404: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type GetProblemType = {
+    Params: Static<typeof GetProblemSchema.params>;
+    Reply:
+        | Static<(typeof GetProblemSchema.response)['200']>
+        | Static<(typeof GetProblemSchema.response)['404']>
+        | Static<(typeof GetProblemSchema.response)['500']>;
+};
+
+export const CreateTestCaseInputSchema = Type.Object({
+    input: Type.String(),
+    expectedOutput: Type.String(),
+    isSample: Type.Optional(Type.Boolean({ default: false })),
+    isActive: Type.Optional(Type.Boolean({ default: true })),
+    explanation: Type.Optional(Type.Union([Type.String(), Type.Null()]))
+});
+
+export const CreateProblemCompanyInputSchema = Type.Object({
+    companyId: Type.Integer(),
+    frequency: Type.Optional(Type.Integer({ minimum: 1, default: 1 })),
+    lastAskedDate: Type.Optional(
+        Type.Union([Type.String({ format: 'date' }), Type.Null()])
+    )
+});
+
+export const CreateEditorialInputSchema = Type.Object({
+    title: Type.String({ maxLength: 255 }),
+    approach: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    content: Type.String(),
+    codeSnippets: Type.Optional(
+        Type.Union([Type.Record(Type.String(), Type.Unknown()), Type.Null()])
+    ),
+    timeComplexity: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    spaceComplexity: Type.Optional(
+        Type.Union([Type.String({ maxLength: 100 }), Type.Null()])
+    ),
+    isOfficial: Type.Optional(Type.Boolean({ default: true })),
+    createdById: Type.Integer()
+});
+
+// --- Create Problem Route Schema & Type ---
+
+export const CreateProblemBodySchema = Type.Object({
+    title: Type.String({ minLength: 1, maxLength: 255 }),
+    slug: Type.String({ minLength: 1, maxLength: 255 }),
+    description: Type.String({ minLength: 1 }),
+    difficulty: DifficultySchema,
+    constraints: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    hints: Type.Optional(Type.Array(Type.String(), { default: [] })),
+    similarProblems: Type.Optional(Type.Array(Type.Integer(), { default: [] })),
+    createdById: Type.Integer(), // Omit if extracted from req.user auth context
+
+    // Optional relational inputs created alongside the problem
+    tagIds: Type.Optional(Type.Array(Type.Integer())),
+    companies: Type.Optional(Type.Array(CreateProblemCompanyInputSchema)),
+    testCases: Type.Optional(Type.Array(CreateTestCaseInputSchema)),
+    editorials: Type.Optional(Type.Array(CreateEditorialInputSchema))
+});
+
+export const CreateProblemSchema = {
+    body: CreateProblemBodySchema,
+    response: {
+        201: ExtendedProblemSchema,
+        400: OkResponseAndErrors,
+        409: OkResponseAndErrors, // for duplicate case
+        500: OkResponseAndErrors
+    }
+};
+
+export type CreateProblemType = {
+    Body: Static<typeof CreateProblemSchema.body>;
+    Reply:
+        | Static<(typeof CreateProblemSchema.response)['201']>
+        | Static<(typeof CreateProblemSchema.response)['400']>
+        | Static<(typeof CreateProblemSchema.response)['409']>
+        | Static<(typeof CreateProblemSchema.response)['500']>;
+};
+
+export const UpdateProblemBodySchema = Type.Object({
+    title: Type.String({ minLength: 1, maxLength: 255 }),
+    slug: Type.String({ minLength: 1, maxLength: 255 }),
+    description: Type.String({ minLength: 1 }),
+    difficulty: DifficultySchema,
+    constraints: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+    hints: Type.Optional(Type.Array(Type.String(), { default: [] })),
+    similarProblems: Type.Optional(Type.Array(Type.Integer(), { default: [] })),
+
+    // Relational collections replaced on PUT when provided
+    tagIds: Type.Optional(Type.Array(Type.Integer(), { default: [] })),
+    companies: Type.Optional(
+        Type.Array(CreateProblemCompanyInputSchema, { default: [] })
+    ),
+    testCases: Type.Optional(
+        Type.Array(CreateTestCaseInputSchema, { default: [] })
+    ),
+    editorials: Type.Optional(
+        Type.Array(CreateEditorialInputSchema, { default: [] })
+    )
+});
+
+export const UpdateProblemSchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    body: UpdateProblemBodySchema,
+    response: {
+        200: ExtendedProblemSchema,
+        400: OkResponseAndErrors,
+        404: OkResponseAndErrors,
+        409: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type UpdateProblemType = {
+    Params: Static<typeof UpdateProblemSchema.params>;
+    Body: Static<typeof UpdateProblemSchema.body>;
+    Reply:
+        | Static<(typeof UpdateProblemSchema.response)['200']>
+        | Static<(typeof UpdateProblemSchema.response)['400']>
+        | Static<(typeof UpdateProblemSchema.response)['404']>
+        | Static<(typeof UpdateProblemSchema.response)['409']>
+        | Static<(typeof UpdateProblemSchema.response)['500']>;
+};
+
+export const DeleteProblemSchema = {
+    params: Type.Object({
+        id: Type.Integer()
+    }),
+    response: {
+        200: Type.Object({
+            ok: Type.Literal(true),
+            id: Type.Integer()
+        }),
+        404: OkResponseAndErrors,
+        500: OkResponseAndErrors
+    }
+};
+
+export type DeleteProblemType = {
+    Params: Static<typeof DeleteProblemSchema.params>;
+    Reply:
+        | Static<(typeof DeleteProblemSchema.response)['200']>
+        | Static<(typeof DeleteProblemSchema.response)['404']>
+        | Static<(typeof DeleteProblemSchema.response)['500']>;
+};

@@ -37,6 +37,7 @@
     "dependencies": {
         "@fastify/cookie": "^11.1.5",
         "@fastify/cors": "^11.4.3",
+        "@fastify/type-provider-typebox": "^6.3.0",
         "@mikro-orm/core": "^5.7.13",
         "@mikro-orm/migrations": "^5.7.13",
         "@mikro-orm/postgresql": "^5.7.13",

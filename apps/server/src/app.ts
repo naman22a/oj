@@ -8,6 +8,7 @@ import fastifyCookie from '@fastify/cookie';
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
 import usersRoutes from './routes/users.route.js';
+import problemsRoutes from './routes/problems.route.js';
 
 declare module 'fastify' {
     interface FastifyRequest {
@@ -38,6 +39,7 @@ fastify.register(
         instance.register(healthRoutes, { prefix: '/health' });
         instance.register(authRoutes, { prefix: '/auth' });
         instance.register(usersRoutes, { prefix: '/users' });
+        instance.register(problemsRoutes, { prefix: '/problems' });
     },
     { prefix: '/api' }
 );

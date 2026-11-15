@@ -1,9 +1,17 @@
-import { Entity, ManyToOne, Property, type Rel } from '@mikro-orm/core';
+import {
+    Entity,
+    ManyToOne,
+    OptionalProps,
+    Property,
+    type Rel
+} from '@mikro-orm/core';
 import { NumericIdEntity } from './base.model.js';
 import { Problem } from './problem.model.js';
 
 @Entity({ tableName: 'editorials', schema: 'problems' })
 export class Editorial extends NumericIdEntity {
+    [OptionalProps]?: 'isOfficial' | 'createdAt' | 'updatedAt';
+
     @ManyToOne('Problem', { onDelete: 'cascade' })
     problem!: Rel<Problem>;
 

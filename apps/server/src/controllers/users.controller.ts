@@ -4,7 +4,7 @@ import type { GetUsersType, GetUserType } from '../common/schemas/index.ts';
 import { User } from '../models/user.model.ts';
 
 export const getUsers: Fastify.RouteHandler<GetUsersType> = async (
-    _request,
+    _req,
     reply
 ) => {
     try {

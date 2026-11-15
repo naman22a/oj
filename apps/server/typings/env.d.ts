@@ -11,6 +11,7 @@ declare global {
             ACCESS_TOKEN_SECRET: string;
             REFRESH_TOKEN_SECRET: string;
             COOKIE_DOMAIN: string;
+            ADMIN_PASSWORD: string;
         }
     }
 }

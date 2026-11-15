@@ -1,10 +1,19 @@
-import { Entity, Index, ManyToOne, Property, type Rel } from '@mikro-orm/core';
+import {
+    Entity,
+    Index,
+    ManyToOne,
+    OptionalProps,
+    Property,
+    type Rel
+} from '@mikro-orm/core';
 import { NumericIdEntity } from './base.model.js';
 import { Problem } from './problem.model.js';
 
 @Entity({ tableName: 'test_cases', schema: 'problems' })
 @Index({ properties: ['problem'] })
 export class TestCase extends NumericIdEntity {
+    [OptionalProps]?: 'isSample' | 'isActive' | 'explanation' | 'createdAt';
+
     @ManyToOne('Problem', { onDelete: 'cascade' })
     problem!: Rel<Problem>;
 

@@ -5,11 +5,11 @@
         "outDir": "./dist",
 
         // Environment Settings
-        "module": "nodenext",
-        "target": "esnext",
+        "module": "NodeNext",
+        "target": "ESNext",
 
-        // For nodejs:
-        "lib": ["esnext"],
+        // For Node.js
+        "lib": ["ESNext"],
         "types": ["node"],
 
         // Other Outputs
@@ -39,7 +39,11 @@
         "isolatedModules": true,
         "noUncheckedSideEffectImports": true,
         "moduleDetection": "force",
-        "skipLibCheck": true
+        "skipLibCheck": true,
+
+        // TypeScript extensions in imports
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true
     },
     "include": ["./src/**/*.ts", "./typings/**/*.d.ts"]
 }

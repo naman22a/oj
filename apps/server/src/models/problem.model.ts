@@ -3,6 +3,7 @@ import {
     Entity,
     Enum,
     OneToMany,
+    OptionalProps,
     Property,
     Unique
 } from '@mikro-orm/core';
@@ -18,6 +19,16 @@ import { ProblemLike } from './problem-like.model.js';
 
 @Entity({ tableName: 'problems', schema: 'problems' })
 export class Problem extends NumericIdEntity {
+    [OptionalProps]?:
+        | 'acceptanceRate'
+        | 'totalSubmissions'
+        | 'totalAccepted'
+        | 'likes'
+        | 'dislikes'
+        | 'similarProblems'
+        | 'createdAt'
+        | 'updatedAt';
+
     @Property({ length: 255 })
     title!: string;
 

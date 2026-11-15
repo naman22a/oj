@@ -3,7 +3,7 @@ import type {
     RegisterType,
     ConfirmEmailType
 } from '../common/schemas/index.js';
-import { getORM } from '../db/index.js';
+import { getEM, getORM } from '../db/index.js';
 import { User } from '../models/user.model.js';
 import argon2 from 'argon2';
 import { createConfirmationUrl, sendEmail } from '../services/mail.js';
@@ -16,8 +16,7 @@ export const postRegister: Fastify.RouteHandler<RegisterType> = async (
 ) => {
     try {
         const { username, email, password } = req.body;
-        const orm = await getORM();
-        const em = orm.em.fork();
+        const em = await getEM();
 
         // check if username already taken
         const usernameExists = await em.findOne(User, { username });
@@ -96,8 +95,7 @@ export const postConfirmEmail: Fastify.RouteHandler<ConfirmEmailType> = async (
             });
         }
 
-        const orm = await getORM();
-        const em = orm.em.fork();
+        const em = await getEM();
 
         // check if token exists in redis
         const userId = await redis.get(CONFIRMATION_PREFIX + token);

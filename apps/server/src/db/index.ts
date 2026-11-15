@@ -10,3 +10,8 @@ export const getORM = async () => {
     }
     return ormInstance;
 };
+
+export const getEM = async () => {
+    const orm = await getORM();
+    return orm.em.fork();
+};

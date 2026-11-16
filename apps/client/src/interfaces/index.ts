@@ -28,3 +28,24 @@ export interface User {
 }
 
 export interface MeResponse extends User {}
+
+export type Difficulty = 'Easy' | 'Medium' | 'Hard';
+
+export interface Problem {
+    id: number;
+    title: string;
+    slug: string;
+    description: string;
+    difficulty: Difficulty;
+    acceptanceRate: string;
+    totalSubmissions: number;
+    totalAccepted: number;
+    likes: number;
+    dislikes: number;
+    constraints: string;
+    hints: string[];
+    similarProblems: number[];
+    createdById: number;
+    createdAt: string;
+    updatedAt: string;
+}

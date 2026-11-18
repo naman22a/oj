@@ -80,11 +80,11 @@ export const getProblem: Fastify.RouteHandler<GetProblemType> = async (
     reply
 ) => {
     try {
-        const id = req.params.id;
+        const slug = req.params.slug;
         const em = await getEM();
         const problem = await em.findOne(
             Problem,
-            { id },
+            { slug },
             {
                 populate: [
                     'problemTags.tag',
@@ -101,7 +101,7 @@ export const getProblem: Fastify.RouteHandler<GetProblemType> = async (
         if (!problem) {
             return reply.status(404).send({
                 ok: false,
-                errors: [{ field: 'id', message: 'problem not found' }]
+                errors: [{ field: 'slug', message: 'problem not found' }]
             });
         }
 

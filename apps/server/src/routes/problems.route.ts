@@ -41,7 +41,7 @@ export default (
     // protected routes
     fastify.addHook('preHandler', authGuard);
     fastify.get('/', { schema: GetProblemsSchema }, getProblems);
-    fastify.get('/:id', { schema: GetProblemSchema }, getProblem);
+    fastify.get('/:slug', { schema: GetProblemSchema }, getProblem);
 
     // admin routes
     fastify.post(

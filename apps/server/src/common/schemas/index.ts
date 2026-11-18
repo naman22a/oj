@@ -392,7 +392,7 @@ export type ExtendedProblem = Static<typeof ExtendedProblemSchema>;
 
 export const GetProblemSchema = {
     params: Type.Object({
-        id: Type.Integer()
+        slug: Type.String()
     }),
     response: {
         200: ExtendedProblemSchema,

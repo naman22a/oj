@@ -49,3 +49,97 @@ export interface Problem {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface Tag {
+    id: number;
+    name: string;
+    slug?: string;
+}
+
+export interface ProblemTag {
+    problemId: number;
+    tagId: number;
+    tag?: Tag;
+}
+
+export interface Company {
+    id: number;
+    name: string;
+    slug?: string;
+}
+
+export interface ProblemCompany {
+    problemId: number;
+    companyId: number;
+    frequency: number;
+    lastAskedDate?: string | null;
+    company?: Company;
+}
+
+export interface TestCase {
+    id: number;
+    problemId: number;
+    input: string;
+    expectedOutput: string;
+    isSample: boolean;
+    isActive: boolean;
+    explanation?: string | null;
+    createdAt: string;
+}
+
+export interface Editorial {
+    id: number;
+    problemId: number;
+    title: string;
+    approach?: string | null;
+    content: string;
+    codeSnippets?: Record<string, unknown> | null;
+    timeComplexity?: string | null;
+    spaceComplexity?: string | null;
+    isOfficial: boolean;
+    createdById: number;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Comment {
+    id: number;
+    problemId: number;
+    userId: number;
+    parentId?: number | null;
+    title?: string | null;
+    content: string;
+    isSolution: boolean;
+    language?: string | null;
+    upvotes: number;
+    downvotes: number;
+    isPinned: boolean;
+    isDeleted: boolean;
+    createdAt: string;
+    updatedAt: string;
+    replies?: Comment[];
+}
+
+export interface Bookmark {
+    userId: number;
+    problemId: number;
+    notes?: string | null;
+    createdAt: string;
+}
+
+export interface ProblemLike {
+    userId: number;
+    problemId: number;
+    isLike: boolean;
+    createdAt: string;
+}
+
+export interface ExtendedProblem extends Problem {
+    problemTags: ProblemTag[];
+    problemCompanies: ProblemCompany[];
+    testCases: TestCase[];
+    editorials: Editorial[];
+    comments: Comment[];
+    bookmarks: Bookmark[];
+    problemLikes: ProblemLike[];
+}

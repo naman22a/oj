@@ -3,6 +3,7 @@ import { getEM } from '../db/index.ts';
 import { Problem } from '../models/problem.model.ts';
 import type {
     CreateProblemType,
+    CreateSubmissionType,
     DeleteProblemType,
     GetProblemsType,
     GetProblemType,
@@ -18,6 +19,9 @@ import { ProblemTag } from '../models/problem-tag.model.ts';
 import { ProblemCompany } from '../models/problem-company.model.ts';
 import { TestCase } from '../models/test-case.model.ts';
 import { Editorial } from '../models/editorial.model.ts';
+import { Submission } from '../models/submission.model.ts';
+import { SubmissionStatus } from '../models/enums.ts';
+import { enqueueSubmission } from '../infrastructure/queue/submission.queue.ts';
 
 type CommentDTO = Static<typeof CommentSchema>;
 
@@ -74,7 +78,7 @@ export const getProblems: Fastify.RouteHandler<GetProblemsType> = async (
     }
 };
 
-// GET /api/problems/:id
+// GET /api/problems/:slug
 export const getProblem: Fastify.RouteHandler<GetProblemType> = async (
     req,
     reply
@@ -740,6 +744,77 @@ export const deleteProblem: Fastify.RouteHandler<DeleteProblemType> = async (
         return reply.status(200).send({
             ok: true,
             id
+        });
+    } catch (error) {
+        console.error(error);
+        return reply.status(500).send({
+            ok: false,
+            errors: [
+                {
+                    field: 'INTERNAL_SERVER_ERROR',
+                    message: 'INTERNAL_SERVER_ERROR'
+                }
+            ]
+        });
+    }
+};
+
+// POST /api/problems/:slug/submission
+export const createSubmission: Fastify.RouteHandler<
+    CreateSubmissionType
+> = async (req, reply) => {
+    const problemSlug = req.params.slug;
+    const { code, language } = req.body;
+
+    // validation
+    if (!code.trim()) {
+        return {
+            jobId: null,
+            errors: [{ field: 'code', message: 'code is required' }]
+        };
+    }
+    if (!language) {
+        return {
+            jobId: null,
+            errors: [{ field: 'language', message: 'language is required' }]
+        };
+    }
+    if (!problemSlug) {
+        return {
+            jobId: null,
+            errors: [{ field: 'problemId', message: 'problemSlug is required' }]
+        };
+    }
+
+    try {
+        const em = await getEM();
+        const problemExists = await em.findOne(Problem, { slug: problemSlug });
+
+        if (!problemExists) {
+            return {
+                jobId: null,
+                errors: [{ field: 'problemId', message: 'problem not found' }]
+            };
+        }
+
+        const submission = em.create(Submission, {
+            userId: req.userId!,
+            code,
+            language,
+            problemId: problemExists.id,
+            status: SubmissionStatus.QUEUED
+        });
+
+        await em.persistAndFlush(submission);
+
+        await enqueueSubmission(submission.id);
+
+        return reply.status(202).send({
+            success: true,
+            data: {
+                submissionId: submission.id,
+                status: submission.status
+            }
         });
     } catch (error) {
         console.error(error);

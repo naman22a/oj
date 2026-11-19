@@ -24,12 +24,19 @@ export enum SubmissionLanguage {
 }
 
 export enum SubmissionStatus {
+    QUEUED = 'Queued',
+    COMPILING = 'Compiling',
+    RUNNING = 'Running',
+
     ACCEPTED = 'Accepted',
     WRONG_ANSWER = 'WrongAnswer',
     TIME_LIMIT_EXCEEDED = 'TimeLimitExceeded',
     MEMORY_LIMIT_EXCEEDED = 'MemoryLimitExceeded',
     RUNTIME_ERROR = 'RuntimeError',
     COMPILE_ERROR = 'CompileError',
+    INTERNAL_ERROR = 'InternalError',
+
+    // Preserve for compatibility with existing records.
     PENDING = 'Pending'
 }
 

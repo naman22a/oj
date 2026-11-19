@@ -1,6 +1,6 @@
 import { Migration } from '@mikro-orm/migrations';
 
-export class Migration20261115083026 extends Migration {
+export class Migration20261119124947 extends Migration {
     async up(): Promise<void> {
         this.addSql('create schema if not exists "problems";');
 
@@ -82,7 +82,7 @@ export class Migration20261115083026 extends Migration {
         );
 
         this.addSql(
-            "create table \"submissions\".\"submissions\" (\"id\" serial primary key, \"userId\" int not null, \"problemId\" int not null, \"language\" text check (\"language\" in ('cpp', 'java', 'javascript', 'python', 'go', 'rust', 'csharp', 'ruby', 'swift', 'php', 'kotlin', 'dart', 'R', 'perl', 'typescript', 'haskell')) not null, \"code\" text not null, \"status\" text check (\"status\" in ('Accepted', 'WrongAnswer', 'TimeLimitExceeded', 'MemoryLimitExceeded', 'RuntimeError', 'CompileError', 'Pending')) not null, \"runtime\" int null, \"memory\" int null, \"testCasesPassed\" int not null default 0, \"totalTestCases\" int not null default 0, \"errorMessage\" text null, \"submittedAt\" timestamptz(0) not null default now(), \"idempotencyKey\" varchar(255) null);"
+            "create table \"submissions\".\"submissions\" (\"id\" serial primary key, \"userId\" int not null, \"problemId\" int not null, \"language\" text check (\"language\" in ('cpp', 'java', 'javascript', 'python', 'go', 'rust', 'csharp', 'ruby', 'swift', 'php', 'kotlin', 'dart', 'R', 'perl', 'typescript', 'haskell')) not null, \"code\" text not null, \"status\" text check (\"status\" in ('Queued', 'Compiling', 'Running', 'Accepted', 'WrongAnswer', 'TimeLimitExceeded', 'MemoryLimitExceeded', 'RuntimeError', 'CompileError', 'InternalError', 'Pending')) not null, \"runtime\" int null, \"memory\" int null, \"testCasesPassed\" int not null default 0, \"totalTestCases\" int not null default 0, \"errorMessage\" text null, \"submittedAt\" timestamptz(0) not null default now(), \"idempotencyKey\" varchar(255) null);"
         );
         this.addSql(
             'create index "submissions_status_index" on "submissions"."submissions" ("status");'
@@ -181,8 +181,6 @@ export class Migration20261115083026 extends Migration {
         this.addSql(
             'alter table "submissions"."user_problem_status" add constraint "user_problem_status_lastSubmissionId_foreign" foreign key ("lastSubmissionId") references "submissions"."submissions" ("id") on update cascade on delete set null;'
         );
-
-        this.addSql('drop table if exists "flyway_schema_history" cascade;');
     }
 
     override async down(): Promise<void> {
@@ -240,13 +238,6 @@ export class Migration20261115083026 extends Migration {
 
         this.addSql(
             'alter table "problems"."problem_tags" drop constraint "problem_tags_tag_id_foreign";'
-        );
-
-        this.addSql(
-            'create table "flyway_schema_history" ("installed_rank" int4 not null default null, "version" varchar(50) null default null, "description" varchar(200) not null default null, "type" varchar(20) not null default null, "script" varchar(1000) not null default null, "checksum" int4 null default null, "installed_by" varchar(100) not null default null, "installed_on" timestamp(6) not null default now(), "execution_time" int4 not null default null, "success" bool not null default null, constraint "flyway_schema_history_pk" primary key ("installed_rank"));'
-        );
-        this.addSql(
-            'create index "flyway_schema_history_s_idx" on "flyway_schema_history" ("success");'
         );
 
         this.addSql('drop table if exists "problems"."companies" cascade;');

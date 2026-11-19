@@ -4,6 +4,7 @@ import {
     Enum,
     Index,
     OneToMany,
+    OptionalProps,
     Property,
     Unique
 } from '@mikro-orm/core';
@@ -16,6 +17,15 @@ import { UserProblemStatus } from './user-problem-status.model.js';
 @Index({ properties: ['status'] })
 @Unique({ properties: ['userId', 'idempotencyKey'] })
 export class Submission extends NumericIdEntity {
+    [OptionalProps]?:
+        | 'runtime'
+        | 'memory'
+        | 'testCasesPassed'
+        | 'totalTestCases'
+        | 'errorMessage'
+        | 'idempotencyKey'
+        | 'submittedAt';
+
     @Property({ fieldName: 'userId' })
     userId!: number;
 

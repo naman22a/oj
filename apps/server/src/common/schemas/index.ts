@@ -1,4 +1,5 @@
 import { Type, type Static } from '@sinclair/typebox';
+import { SubmissionLanguage } from '../../models/enums.ts';
 
 // ==========================================
 // COMMON SCHEMAS
@@ -699,4 +700,19 @@ export type BulkCreateCompaniesType = {
         | Static<(typeof BulkCreateCompaniesSchema.response)['201']>
         | Static<(typeof BulkCreateCompaniesSchema.response)['409']>
         | Static<(typeof BulkCreateCompaniesSchema.response)['500']>;
+};
+
+export const CreateSubmissionSchema = {
+    params: Type.Object({
+        slug: Type.String()
+    }),
+    body: Type.Object({
+        code: Type.String(),
+        language: Type.Enum(SubmissionLanguage)
+    })
+};
+
+export type CreateSubmissionType = {
+    Params: Static<typeof CreateSubmissionSchema.params>;
+    Body: Static<typeof CreateSubmissionSchema.body>;
 };

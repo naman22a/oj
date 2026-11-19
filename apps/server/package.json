@@ -4,11 +4,14 @@
     "main": "dist/app.js",
     "scripts": {
         "start": "node dist/app.js",
+        "start:worker": "node dist/workers/execution/execution.worker.js",
         "dev": "tsx watch src/app.ts",
+        "dev:worker": "tsx watch src/workers/execution/execution.worker.ts",
         "build": "tsc",
         "mg:create": "mikro-orm migration:create",
         "mg:up": "mikro-orm migration:up",
-        "seed": "NODE_OPTIONS='--import tsx' mikro-orm seeder:run --class DatabaseSeeder"
+        "seed": "NODE_OPTIONS='--import tsx' mikro-orm seeder:run --class DatabaseSeeder",
+        "drop:db": "mikro-orm schema:drop --drop-db --run"
     },
     "keywords": [],
     "devEngines": {
@@ -46,6 +49,7 @@
         "@mikro-orm/sql-highlighter": "^1.0.1",
         "@sinclair/typebox": "^0.34.52",
         "argon2": "^0.45.2",
+        "bullmq": "^6.7.7",
         "dotenv": "^18.0.10",
         "fastify": "^5.12.8",
         "ioredis": "^6.0.0",

@@ -11,14 +11,16 @@ import {
     getProblem,
     createProblem,
     updateProblem,
-    deleteProblem
+    deleteProblem,
+    createSubmission
 } from '../controllers/problems.controller.ts';
 import {
     GetProblemsSchema,
     GetProblemSchema,
     CreateProblemSchema,
     UpdateProblemSchema,
-    DeleteProblemSchema
+    DeleteProblemSchema,
+    CreateSubmissionSchema
 } from '../common/schemas/index.ts';
 import { authGuard } from '../middleware/auth.middleware.ts';
 import { adminGuard } from '../middleware/admin.middleware.ts';
@@ -58,6 +60,11 @@ export default (
         '/:id',
         { schema: DeleteProblemSchema, preHandler: adminGuard },
         deleteProblem
+    );
+    fastify.post(
+        '/:slug/submission',
+        { schema: CreateSubmissionSchema },
+        createSubmission
     );
 
     done();

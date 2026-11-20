@@ -27,7 +27,9 @@ export class Problem extends NumericIdEntity {
         | 'dislikes'
         | 'similarProblems'
         | 'createdAt'
-        | 'updatedAt';
+        | 'updatedAt'
+        | 'timeLimitMs'
+        | 'memoryLimitMb';
 
     @Property({ length: 255 })
     title!: string;
@@ -78,6 +80,12 @@ export class Problem extends NumericIdEntity {
     // The source schema has createdById but no declared User relation/FK.
     @Property({ fieldName: 'createdById' })
     createdById!: number;
+
+    @Property({ fieldName: 'timeLimitMs', default: 2000 })
+    timeLimitMs = 2000;
+
+    @Property({ fieldName: 'memoryLimitMb', default: 256 })
+    memoryLimitMb = 256;
 
     @Property({ defaultRaw: 'now()' })
     createdAt = new Date();

@@ -171,7 +171,7 @@ export const postLogin: Fastify.RouteHandler<LoginType> = async (
         const user = await em.findOne(User, { email });
         if (!user) {
             return reply.status(400).send({
-                accessToken: '',
+                ok: false,
                 errors: [{ field: 'email', message: 'user not found' }]
             });
         }

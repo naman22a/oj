@@ -22,7 +22,6 @@ export class Submission extends NumericIdEntity {
         | 'memory'
         | 'testCasesPassed'
         | 'totalTestCases'
-        | 'errorMessage'
         | 'idempotencyKey'
         | 'submittedAt';
 

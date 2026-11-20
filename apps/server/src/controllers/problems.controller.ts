@@ -829,3 +829,36 @@ export const createSubmission: Fastify.RouteHandler<
         });
     }
 };
+
+// GET /api/problems/:slug/submission
+export const getSubmission: Fastify.RouteHandler<{
+    Params: { id: string };
+}> = async (req, reply) => {
+    const em = await getEM();
+    const submissionId = Number(req.params.id);
+
+    const submission = await em.findOne(Submission, {
+        id: submissionId,
+        userId: req.userId!
+    });
+
+    if (!submission) {
+        return reply.status(404).send({
+            success: false,
+            message: 'Submission not found'
+        });
+    }
+
+    return reply.send({
+        success: true,
+        data: {
+            id: submission.id,
+            status: submission.status,
+            runtime: submission.runtime,
+            memory: submission.memory,
+            testCasesPassed: submission.testCasesPassed,
+            totalTestCases: submission.totalTestCases,
+            errorMessage: submission.errorMessage
+        }
+    });
+};

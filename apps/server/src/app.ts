@@ -12,6 +12,7 @@ import usersRoutes from './routes/users.route.js';
 import problemsRoutes from './routes/problems.route.js';
 import tagsRoutes from './routes/tags.route.ts';
 import companiesRoutes from './routes/companies.route.ts';
+import submissionsRoutes from './routes/submissions.route.ts';
 
 declare module 'fastify' {
     interface FastifyRequest {
@@ -49,6 +50,7 @@ fastify.register(
         instance.register(problemsRoutes, { prefix: '/problems' });
         instance.register(tagsRoutes, { prefix: '/tags' });
         instance.register(companiesRoutes, { prefix: '/companies' });
+        instance.register(submissionsRoutes, { prefix: '/submissions' });
     },
     { prefix: '/api' }
 );

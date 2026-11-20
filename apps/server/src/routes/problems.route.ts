@@ -11,17 +11,14 @@ import {
     getProblem,
     createProblem,
     updateProblem,
-    deleteProblem,
-    createSubmission,
-    getSubmission
+    deleteProblem
 } from '../controllers/problems.controller.ts';
 import {
     GetProblemsSchema,
     GetProblemSchema,
     CreateProblemSchema,
     UpdateProblemSchema,
-    DeleteProblemSchema,
-    CreateSubmissionSchema
+    DeleteProblemSchema
 } from '../common/schemas/index.ts';
 import { authGuard } from '../middleware/auth.middleware.ts';
 import { adminGuard } from '../middleware/admin.middleware.ts';
@@ -45,12 +42,6 @@ export default (
     fastify.addHook('preHandler', authGuard);
     fastify.get('/', { schema: GetProblemsSchema }, getProblems);
     fastify.get('/:slug', { schema: GetProblemSchema }, getProblem);
-    fastify.post(
-        '/:slug/submission',
-        { schema: CreateSubmissionSchema },
-        createSubmission
-    );
-    fastify.get('/:id/submission', getSubmission);
 
     // admin routes
     fastify.post(

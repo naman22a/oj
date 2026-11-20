@@ -1,0 +1,41 @@
+import type {
+    FastifyInstance,
+    RawServerDefault,
+    RawRequestDefaultExpression,
+    RawReplyDefaultExpression,
+    FastifyBaseLogger
+} from 'fastify';
+import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
+import {
+    createSubmission,
+    getSubmission
+} from '../controllers/submissions.controller.ts';
+import { CreateSubmissionSchema } from '../common/schemas/index.ts';
+import { authGuard } from '../middleware/auth.middleware.ts';
+
+export type FastifyTypeBox = FastifyInstance<
+    RawServerDefault,
+    RawRequestDefaultExpression,
+    RawReplyDefaultExpression,
+    FastifyBaseLogger,
+    TypeBoxTypeProvider
+>;
+
+export default (
+    fastify: FastifyTypeBox,
+    _opts: {
+        prefix: string;
+    },
+    done: (err?: Error) => void
+) => {
+    // protected routes
+    fastify.addHook('preHandler', authGuard);
+    fastify.post(
+        '/:slug',
+        { schema: CreateSubmissionSchema },
+        createSubmission
+    );
+    fastify.get('/:id', getSubmission);
+
+    done();
+};

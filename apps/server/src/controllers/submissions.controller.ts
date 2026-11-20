@@ -109,3 +109,17 @@ export const getSubmission: Fastify.RouteHandler<{
         }
     });
 };
+
+// GET /api/submissions
+export const getSubmissionsHistory: Fastify.RouteHandler = async (
+    req,
+    reply
+) => {
+    const em = await getEM();
+
+    const submissions = await em.find(Submission, {
+        userId: req.userId!
+    });
+
+    return reply.status(200).send(submissions);
+};

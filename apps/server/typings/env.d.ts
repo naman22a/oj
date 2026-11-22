@@ -12,6 +12,7 @@ declare global {
             REFRESH_TOKEN_SECRET: string;
             COOKIE_DOMAIN: string;
             ADMIN_PASSWORD: string;
+            ACCESS_TOKEN?: string;
         }
     }
 }

@@ -45,5 +45,5 @@
         "allowImportingTsExtensions": true,
         "rewriteRelativeImportExtensions": true
     },
-    "include": ["./src/**/*.ts", "./typings/**/*.d.ts"]
+    "include": ["./src/**/*.ts", "./scripts/**/*.ts", "./typings/**/*.d.ts"]
 }

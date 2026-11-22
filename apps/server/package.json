@@ -34,6 +34,7 @@
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "^26.6.6",
         "pino-pretty": "^13.2.0",
+        "socket.io-client": "^4.8.4",
         "tsx": "^4.23.15",
         "typescript": "^7.0.2"
     },
@@ -48,6 +49,8 @@
         "@mikro-orm/seeder": "^5.7.13",
         "@mikro-orm/sql-highlighter": "^1.0.1",
         "@sinclair/typebox": "^0.34.52",
+        "@socket.io/redis-adapter": "^8.3.0",
+        "@socket.io/redis-emitter": "^5.1.0",
         "argon2": "^0.45.2",
         "bullmq": "^6.7.7",
         "dotenv": "^18.0.10",
@@ -55,6 +58,7 @@
         "ioredis": "^6.0.0",
         "jsonwebtoken": "^9.0.3",
         "resend": "^6.38.1",
+        "socket.io": "^4.8.4",
         "uuid": "^14.0.3"
     },
     "mikro-orm": {

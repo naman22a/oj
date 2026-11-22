@@ -7,6 +7,7 @@ import {
     ExecutionService,
     type ExecutionVerdict
 } from './execution.service.ts';
+import { emitSubmissionUpdate } from '../../infrastructure/socket/emitter.js';
 
 interface ExecutionJobData {
     submissionId: number;
@@ -51,6 +52,11 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
         submission.status = SubmissionStatus.COMPILING;
         await em.flush();
 
+        emitSubmissionUpdate(submission.userId, {
+            submissionId: submission.id,
+            status: submission.status
+        });
+
         const problem = await em.findOne(Problem, {
             id: submission.problemId
         });
@@ -90,6 +96,11 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
             async (status) => {
                 submission.status = status;
                 await em.flush();
+
+                emitSubmissionUpdate(submission.userId, {
+                    submissionId: submission.id,
+                    status: submission.status
+                });
             }
         );
 
@@ -101,6 +112,16 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
         submission.errorMessage = result.errorMessage ?? '';
 
         await em.flush();
+
+        emitSubmissionUpdate(submission.userId, {
+            submissionId: submission.id,
+            status: submission.status,
+            runtime: submission.runtime,
+            memory: submission.memory,
+            testCasesPassed: submission.testCasesPassed,
+            totalTestCases: submission.totalTestCases,
+            errorMessage: submission.errorMessage ?? null
+        });
 
         return result;
     } catch (error) {
@@ -118,6 +139,16 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
                     : 'Unknown execution error';
 
             await em.flush();
+
+            emitSubmissionUpdate(submission.userId, {
+                submissionId: submission.id,
+                status: submission.status,
+                runtime: submission.runtime!,
+                memory: submission.memory!,
+                testCasesPassed: submission.testCasesPassed,
+                totalTestCases: submission.totalTestCases,
+                errorMessage: submission.errorMessage ?? null
+            });
         }
 
         throw error;

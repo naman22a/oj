@@ -4,6 +4,7 @@ import cors from '@fastify/cors';
 import { __prod__ } from './common/constants/index.js';
 import { getORM } from './db/index.js';
 import fastifyCookie from '@fastify/cookie';
+import { initializeSocket } from './infrastructure/socket/index.js';
 
 // IMPORT ROUTES
 import healthRoutes from './routes/health.route.js';
@@ -61,6 +62,9 @@ const start = async () => {
         // DB CONNECTION
         const orm = await getORM();
         await orm.connect();
+
+        // SOCKET.IO
+        await initializeSocket(fastify.server);
 
         await fastify.listen({
             port,

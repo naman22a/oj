@@ -64,8 +64,7 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
             TestCase,
             {
                 problem,
-                isActive: true,
-                isSample: false
+                isActive: true
             },
             {
                 orderBy: { id: 'ASC' }

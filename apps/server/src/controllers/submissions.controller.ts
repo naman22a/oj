@@ -5,6 +5,7 @@ import { Problem } from '../models/problem.model.ts';
 import { Submission } from '../models/submission.model.ts';
 import { SubmissionStatus } from '../models/enums.ts';
 import { enqueueSubmission } from '../infrastructure/queue/submission.queue.ts';
+import { emitSubmissionUpdate } from '../infrastructure/socket/emitter.ts';
 
 // POST /api/submissions/:slug
 export const createSubmission: Fastify.RouteHandler<
@@ -55,6 +56,11 @@ export const createSubmission: Fastify.RouteHandler<
         await em.persistAndFlush(submission);
 
         await enqueueSubmission(submission.id);
+
+        emitSubmissionUpdate(submission.userId, {
+            submissionId: submission.id,
+            status: submission.status
+        });
 
         return reply.status(202).send({
             success: true,

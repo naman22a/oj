@@ -1,19 +1,14 @@
-import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { __prod__ } from './common/constants/index.js';
-import { getORM } from './db/index.js';
 import fastifyCookie from '@fastify/cookie';
-import { initializeSocket } from './infrastructure/socket/index.js';
 
-// IMPORT ROUTES
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
 import usersRoutes from './routes/users.route.js';
 import problemsRoutes from './routes/problems.route.js';
-import tagsRoutes from './routes/tags.route.ts';
-import companiesRoutes from './routes/companies.route.ts';
-import submissionsRoutes from './routes/submissions.route.ts';
+import tagsRoutes from './routes/tags.route.js';
+import companiesRoutes from './routes/companies.route.js';
+import submissionsRoutes from './routes/submissions.route.js';
 
 declare module 'fastify' {
     interface FastifyRequest {
@@ -21,59 +16,41 @@ declare module 'fastify' {
     }
 }
 
-// CONSTANTS
-const fastify = Fastify({
-    logger: {
-        transport: {
-            target: 'pino-pretty',
-            options: {
-                translateTime: 'HH:MM:ss Z',
-                ignore: 'pid,hostname'
-            }
-        }
-    }
-});
-const port = parseInt(process.env.PORT || '', 10) || 5000;
+export async function buildApp() {
+    const fastify = Fastify({
+        logger:
+            process.env.NODE_ENV === 'test'
+                ? false
+                : {
+                      transport: {
+                          target: 'pino-pretty',
+                          options: {
+                              translateTime: 'HH:MM:ss Z',
+                              ignore: 'pid,hostname'
+                          }
+                      }
+                  }
+    });
 
-// MIDDLEWARE
-fastify.register(cors, {
-    origin: process.env.CLIENT_URL,
-    credentials: true
-});
-fastify.register(fastifyCookie);
+    await fastify.register(cors, {
+        origin: process.env.CLIENT_URL,
+        credentials: true
+    });
 
-// ROUTES
-fastify.register(
-    async (instance) => {
-        instance.register(healthRoutes, { prefix: '/health' });
-        instance.register(authRoutes, { prefix: '/auth' });
-        instance.register(usersRoutes, { prefix: '/users' });
-        instance.register(problemsRoutes, { prefix: '/problems' });
-        instance.register(tagsRoutes, { prefix: '/tags' });
-        instance.register(companiesRoutes, { prefix: '/companies' });
-        instance.register(submissionsRoutes, { prefix: '/submissions' });
-    },
-    { prefix: '/api' }
-);
+    await fastify.register(fastifyCookie);
 
-// START THE SERVER
-const start = async () => {
-    try {
-        // DB CONNECTION
-        const orm = await getORM();
-        await orm.connect();
+    await fastify.register(
+        async (instance) => {
+            instance.register(healthRoutes, { prefix: '/health' });
+            instance.register(authRoutes, { prefix: '/auth' });
+            instance.register(usersRoutes, { prefix: '/users' });
+            instance.register(problemsRoutes, { prefix: '/problems' });
+            instance.register(tagsRoutes, { prefix: '/tags' });
+            instance.register(companiesRoutes, { prefix: '/companies' });
+            instance.register(submissionsRoutes, { prefix: '/submissions' });
+        },
+        { prefix: '/api' }
+    );
 
-        // SOCKET.IO
-        await initializeSocket(fastify.server);
-
-        await fastify.listen({
-            port,
-            host: __prod__ ? '0.0.0.0' : '127.0.0.1'
-        });
-    } catch (err) {
-        fastify.log.error(err);
-        process.exit(1);
-    }
-};
-
-start();
+    return fastify;
+}

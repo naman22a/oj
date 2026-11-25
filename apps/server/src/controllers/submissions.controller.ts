@@ -17,18 +17,21 @@ export const createSubmission: Fastify.RouteHandler<
     // validation
     if (!code.trim()) {
         return {
+            ok: false,
             jobId: null,
             errors: [{ field: 'code', message: 'code is required' }]
         };
     }
     if (!language) {
         return {
+            ok: false,
             jobId: null,
             errors: [{ field: 'language', message: 'language is required' }]
         };
     }
     if (!problemSlug) {
         return {
+            ok: false,
             jobId: null,
             errors: [{ field: 'problemId', message: 'problemSlug is required' }]
         };
@@ -40,6 +43,7 @@ export const createSubmission: Fastify.RouteHandler<
 
         if (!problemExists) {
             return {
+                ok: false,
                 jobId: null,
                 errors: [{ field: 'problemId', message: 'problem not found' }]
             };
@@ -63,7 +67,7 @@ export const createSubmission: Fastify.RouteHandler<
         });
 
         return reply.status(202).send({
-            success: true,
+            ok: true,
             data: {
                 submissionId: submission.id,
                 status: submission.status

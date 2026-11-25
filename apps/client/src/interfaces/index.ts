@@ -143,3 +143,17 @@ export interface ExtendedProblem extends Problem {
     bookmarks: Bookmark[];
     problemLikes: ProblemLike[];
 }
+
+export type CreateSubmissionResponse =
+    | {
+          ok: true;
+          data: {
+              submissionId: number;
+              status: string;
+          };
+      }
+    | {
+          ok: false;
+          jobId?: number | null;
+          errors: FieldError[];
+      };

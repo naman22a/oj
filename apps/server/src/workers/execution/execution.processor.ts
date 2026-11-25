@@ -120,7 +120,8 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
             memory: submission.memory,
             testCasesPassed: submission.testCasesPassed,
             totalTestCases: submission.totalTestCases,
-            errorMessage: submission.errorMessage ?? null
+            errorMessage: submission.errorMessage ?? null,
+            results: result.results!
         });
 
         return result;

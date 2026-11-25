@@ -28,6 +28,10 @@ export interface ExecutionResult {
     testCasesPassed: number;
     totalTestCases: number;
     errorMessage?: string;
+    results?: {
+        output: string;
+        expectedOutput: string;
+    }[];
 }
 
 export interface ExecutionOptions {
@@ -71,6 +75,10 @@ export class ExecutionService {
             let totalRuntime = 0;
             let peakMemory = 0;
             let passed = 0;
+            const results: {
+                output: string;
+                expectedOutput: string;
+            }[] = [];
 
             for (const testCase of testCases) {
                 const result = await this.sandbox.execute(
@@ -87,6 +95,10 @@ export class ExecutionService {
 
                 totalRuntime += result.timeMs;
                 peakMemory = Math.max(peakMemory, result.memoryKb ?? 0);
+                results.push({
+                    output: result.stdout,
+                    expectedOutput: testCase.expectedOutput
+                });
 
                 if (result.timedOut) {
                     return {
@@ -94,7 +106,8 @@ export class ExecutionService {
                         runtime: totalRuntime,
                         memory: peakMemory,
                         testCasesPassed: passed,
-                        totalTestCases: testCases.length
+                        totalTestCases: testCases.length,
+                        results
                     };
                 }
 
@@ -104,7 +117,8 @@ export class ExecutionService {
                         runtime: totalRuntime,
                         memory: peakMemory,
                         testCasesPassed: passed,
-                        totalTestCases: testCases.length
+                        totalTestCases: testCases.length,
+                        results
                     };
                 }
 
@@ -136,7 +150,8 @@ export class ExecutionService {
                         runtime: totalRuntime,
                         memory: peakMemory,
                         testCasesPassed: passed,
-                        totalTestCases: testCases.length
+                        totalTestCases: testCases.length,
+                        results
                     };
                 }
 
@@ -148,7 +163,8 @@ export class ExecutionService {
                 runtime: totalRuntime,
                 memory: peakMemory,
                 testCasesPassed: passed,
-                totalTestCases: testCases.length
+                totalTestCases: testCases.length,
+                results
             };
         } finally {
             await rm(workspace, {

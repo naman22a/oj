@@ -12,6 +12,10 @@ export interface SubmissionUpdate {
     testCasesPassed?: number;
     totalTestCases?: number;
     errorMessage?: string | null;
+    results?: {
+        output: string;
+        expectedOutput: string;
+    }[];
 }
 
 export function emitSubmissionUpdate(userId: number, data: SubmissionUpdate) {

@@ -34,3 +34,5 @@ int main(){
 }`
     }
 };
+
+export const languages = ['cpp', 'python', 'javascript', 'java'];

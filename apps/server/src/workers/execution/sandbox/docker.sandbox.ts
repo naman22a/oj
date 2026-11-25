@@ -40,6 +40,9 @@ export class DockerSandbox implements Sandbox {
         const dockerArgs = [
             'run',
 
+            // Keep STDIN open and forward input to container.
+            '--interactive',
+
             '--name',
             containerName,
 

@@ -157,3 +157,38 @@ export type CreateSubmissionResponse =
           jobId?: number | null;
           errors: FieldError[];
       };
+
+export const SubmissionStatus = {
+    QUEUED: 'Queued',
+    COMPILING: 'Compiling',
+    RUNNING: 'Running',
+
+    ACCEPTED: 'Accepted',
+    WRONG_ANSWER: 'WrongAnswer',
+    TIME_LIMIT_EXCEEDED: 'TimeLimitExceeded',
+    MEMORY_LIMIT_EXCEEDED: 'MemoryLimitExceeded',
+    RUNTIME_ERROR: 'RuntimeError',
+    COMPILE_ERROR: 'CompileError',
+    INTERNAL_ERROR: 'InternalError',
+
+    PENDING: 'Pending'
+} as const;
+
+export type SubmissionStatus =
+    (typeof SubmissionStatus)[keyof typeof SubmissionStatus];
+
+export interface ISubmission {
+    id: number;
+    userId: number;
+    problemId: number;
+    language: string;
+    code: string;
+    status: SubmissionStatus;
+    runtime: number;
+    memory: number;
+    testCasesPassed: number;
+    totalTestCases: number;
+    errorMessage: string;
+    submittedAt: string;
+    idempotencyKey: string | null;
+}

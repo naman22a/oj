@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import type { CreateSubmissionResponse, ExtendedProblem } from '../interfaces';
+import type {
+    CreateSubmissionResponse,
+    ExtendedProblem,
+    SubmissionStatus
+} from '../interfaces';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,25 +28,6 @@ import { ScrollArea } from './ui/scroll-area';
 interface Props {
     problem: ExtendedProblem;
 }
-
-export const SubmissionStatus = {
-    QUEUED: 'Queued',
-    COMPILING: 'Compiling',
-    RUNNING: 'Running',
-
-    ACCEPTED: 'Accepted',
-    WRONG_ANSWER: 'WrongAnswer',
-    TIME_LIMIT_EXCEEDED: 'TimeLimitExceeded',
-    MEMORY_LIMIT_EXCEEDED: 'MemoryLimitExceeded',
-    RUNTIME_ERROR: 'RuntimeError',
-    COMPILE_ERROR: 'CompileError',
-    INTERNAL_ERROR: 'InternalError',
-
-    PENDING: 'Pending'
-} as const;
-
-export type SubmissionStatus =
-    (typeof SubmissionStatus)[keyof typeof SubmissionStatus];
 
 export interface SubmissionUpdate {
     submissionId: number;

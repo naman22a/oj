@@ -133,3 +133,25 @@ export const getSubmissionsHistory: Fastify.RouteHandler = async (
 
     return reply.status(200).send(submissions);
 };
+
+// GET /api/submissions/history/:id
+export const getSubmissionProblemHistory: Fastify.RouteHandler<{
+    Params: { id: string };
+}> = async (req, reply) => {
+    const em = await getEM();
+
+    const submissions = await em.find(
+        Submission,
+        {
+            userId: req.userId!,
+            problemId: parseInt(req.params.id!, 10)
+        },
+        {
+            orderBy: {
+                submittedAt: 'DESC'
+            }
+        }
+    );
+
+    return reply.status(200).send(submissions);
+};

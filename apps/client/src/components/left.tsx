@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/code-block';
 import { cn } from 'cn';
 import { ScrollArea } from './ui/scroll-area';
+import Submissions from './submissions';
 
 interface Props {
     problem: ExtendedProblem;
@@ -158,7 +159,7 @@ const Left: React.FC<Props> = ({ problem }) => {
                     </div>
                 </TabsContent>
                 <TabsContent value="submissions">
-                    <h1>Submissions</h1>
+                    <Submissions id={problem.id} />
                 </TabsContent>
                 <TabsContent value="editorial">
                     <h1>Editorial</h1>

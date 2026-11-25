@@ -9,6 +9,7 @@ import type { TypeBoxTypeProvider } from '@fastify/type-provider-typebox';
 import {
     createSubmission,
     getSubmission,
+    getSubmissionProblemHistory,
     getSubmissionsHistory
 } from '../controllers/submissions.controller.ts';
 import { CreateSubmissionSchema } from '../common/schemas/index.ts';
@@ -39,6 +40,7 @@ export default (
         createSubmission
     );
     fastify.get('/:id', getSubmission);
+    fastify.get('/history/:id', getSubmissionProblemHistory);
 
     done();
 };

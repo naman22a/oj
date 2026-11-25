@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn as nodeSpawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import type {
     Sandbox,
@@ -8,8 +8,11 @@ import type {
 
 const IMAGE = 'oj-cpp:local';
 const MAX_OUTPUT_BYTES = 1024 * 1024;
+type SpawnFunction = typeof nodeSpawn;
 
 export class DockerSandbox implements Sandbox {
+    constructor(private readonly spawn: SpawnFunction = nodeSpawn) {}
+
     async execute(
         workspace: string,
         command: string,
@@ -107,7 +110,7 @@ export class DockerSandbox implements Sandbox {
         const startedAt = performance.now();
 
         return new Promise((resolve, reject) => {
-            const child = spawn('docker', dockerArgs, {
+            const child = this.spawn('docker', dockerArgs, {
                 stdio: ['pipe', 'pipe', 'pipe']
             });
 
@@ -120,7 +123,7 @@ export class DockerSandbox implements Sandbox {
             let settled = false;
 
             const killContainer = () => {
-                const killer = spawn('docker', ['kill', containerName], {
+                const killer = this.spawn('docker', ['kill', containerName], {
                     stdio: 'ignore'
                 });
 
@@ -175,9 +178,18 @@ export class DockerSandbox implements Sandbox {
                 console.log('[DockerSandbox] stderr:', stderr);
 
                 if (exitCode === 125 || exitCode === 126 || exitCode === 127) {
-                    throw new Error(
-                        `Docker execution failed with exit code ${exitCode}:\n${stderr}`
+                    settled = true;
+                    clearTimeout(timeout);
+
+                    await this.removeContainer(containerName);
+
+                    reject(
+                        new Error(
+                            `Docker execution failed with exit code ${exitCode}:\n${stderr}`
+                        )
                     );
+
+                    return;
                 }
 
                 if (settled) return;
@@ -256,7 +268,7 @@ export class DockerSandbox implements Sandbox {
 
     private runDockerCommand(args: string[]): Promise<string> {
         return new Promise((resolve, reject) => {
-            const child = spawn('docker', args);
+            const child = this.spawn('docker', args);
 
             let stdout = '';
             let stderr = '';

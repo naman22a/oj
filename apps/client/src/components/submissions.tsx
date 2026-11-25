@@ -43,6 +43,9 @@ const Submissions: React.FC<Props> = ({ id }) => {
                     <TableHead>Status</TableHead>
                     <TableHead>Language</TableHead>
                     <TableHead>Submitted On</TableHead>
+                    <TableHead>Passed Test Cases</TableHead>
+                    <TableHead>Memory used</TableHead>
+                    <TableHead>Time taken</TableHead>
                 </TableRow>
             </TableHeader>
             <TableBody>
@@ -57,9 +60,9 @@ const Submissions: React.FC<Props> = ({ id }) => {
                     >
                         <TableCell
                             className={cn(
-                                submission.status === 'WrongAnswer'
-                                    ? 'text-red-600'
-                                    : 'text-green-500'
+                                submission.status === 'Accepted'
+                                    ? 'text-green-500'
+                                    : 'text-red-600'
                             )}
                         >
                             {submission.status}
@@ -68,6 +71,12 @@ const Submissions: React.FC<Props> = ({ id }) => {
                         <TableCell>
                             {dayjs(submission.submittedAt).fromNow()}
                         </TableCell>
+                        <TableCell>
+                            {submission.testCasesPassed} /{' '}
+                            {submission.totalTestCases}
+                        </TableCell>
+                        <TableCell>{submission.memory} Kb</TableCell>
+                        <TableCell>{submission.runtime} ms</TableCell>
                     </TableRow>
                 ))}
             </TableBody>

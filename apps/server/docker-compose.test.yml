@@ -2,6 +2,7 @@
 services:
   postgres-test:
     image: postgres:16
+    container_name: oj-test-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: oj_test
@@ -17,5 +18,15 @@ services:
     volumes:
       - oj_test_data:/var/lib/postgresql/data
 
+  redis-test:
+    image: redis:7
+    container_name: oj-test-redis
+    restart: unless-stopped
+    ports:
+        - '6380:6379'
+    volumes:
+        - oj_test_redis_data:/data
+
 volumes:
   oj_test_data:
+  oj_test_redis_data:

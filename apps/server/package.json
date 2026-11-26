@@ -4,9 +4,9 @@
     "main": "dist/app.js",
     "scripts": {
         "start": "node dist/server.js",
-        "start:worker": "node dist/workers/execution/execution.worker.js",
+        "start:worker": "node dist/workers/execution/execution.worker.main.js",
         "dev": "tsx watch src/server.ts",
-        "dev:worker": "tsx watch src/workers/execution/execution.worker.ts",
+        "dev:worker": "tsx watch src/workers/execution/execution.worker.main.ts",
         "build": "tsc",
         "mg:create": "mikro-orm migration:create",
         "mg:up": "mikro-orm migration:up",

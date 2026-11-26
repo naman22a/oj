@@ -2,6 +2,7 @@ export interface SandboxOptions {
     timeoutMs: number;
     memoryMb: number;
     writable?: boolean;
+    image?: string;
 }
 
 export interface Sandbox {

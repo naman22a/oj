@@ -33,7 +33,8 @@ export class CppCompiler implements Compiler {
             {
                 timeoutMs: 10_000,
                 memoryMb: 512,
-                writable: true
+                writable: true,
+                image: 'oj-cpp:local'
             }
         );
 

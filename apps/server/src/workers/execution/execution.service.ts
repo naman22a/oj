@@ -36,6 +36,7 @@ export interface ExecutionResult {
 export interface ExecutionOptions {
     timeLimitMs: number;
     memoryLimitMb: number;
+    image?: string;
 }
 
 export class ExecutionService {
@@ -97,7 +98,8 @@ export class ExecutionService {
                     {
                         timeoutMs: options.timeLimitMs,
                         memoryMb: options.memoryLimitMb,
-                        writable: false
+                        writable: false,
+                        image: options.image!
                     }
                 );
 

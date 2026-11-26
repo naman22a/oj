@@ -7,7 +7,7 @@ import type {
     SandboxResult
 } from './sandbox.interface.js';
 
-const IMAGE = 'oj-cpp:local';
+const DEFAULT_IMAGE = 'oj-cpp:local';
 
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const DOCKER_COMMAND_TIMEOUT_MS = 10_000;
@@ -57,6 +57,8 @@ export class DockerSandbox implements Sandbox {
             'target=/workspace',
             ...(options.writable ? [] : ['readonly'])
         ].join(',');
+
+        const image = options.image ?? DEFAULT_IMAGE;
 
         const createArgs = [
             'create',
@@ -111,7 +113,7 @@ export class DockerSandbox implements Sandbox {
             '--workdir',
             '/workspace',
 
-            IMAGE,
+            image,
             command,
             ...args
         ];

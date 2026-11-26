@@ -9,8 +9,8 @@ import {
 } from './execution.service.ts';
 import { emitSubmissionUpdate } from '../../infrastructure/socket/emitter.js';
 import { DockerSandbox } from './sandbox/docker.sandbox.ts';
-import { CppCompiler } from './compiler/cpp.compiler.ts';
 import type { ExecutionJobContext } from './execution.worker.ts';
+import { getLanguageConfig } from './config/language.registry.ts';
 
 interface ExecutionJobData {
     submissionId: number;
@@ -91,8 +91,9 @@ export async function processExecution(
         }
 
         const sandbox = new DockerSandbox();
+        const languageConfig = getLanguageConfig(submission.language);
         const executionService = new ExecutionService(
-            new CppCompiler(sandbox),
+            languageConfig.compiler(sandbox),
             sandbox
         );
 
@@ -104,7 +105,8 @@ export async function processExecution(
             })),
             {
                 timeLimitMs: problem.timeLimitMs,
-                memoryLimitMb: problem.memoryLimitMb
+                memoryLimitMb: problem.memoryLimitMb,
+                image: languageConfig.image
             },
             async (status) => {
                 submission.status = status;

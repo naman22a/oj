@@ -27,7 +27,7 @@ int main(){
         image: 'eclipse-temurin:17-jdk',
         compile: ['javac', 'Solution.java'],
         run: ['java', 'Solution'],
-        defaultCode: `public class Solution {
+        defaultCode: `public class Main {
     public static void main(String[] args) {
         
     }

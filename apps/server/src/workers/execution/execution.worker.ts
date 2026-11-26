@@ -6,7 +6,15 @@ interface ExecutionJobData {
     submissionId: number;
 }
 
-type ExecutionProcessor = (data: ExecutionJobData) => Promise<unknown>;
+export interface ExecutionJobContext {
+    attemptsMade: number;
+    attempts: number;
+}
+
+type ExecutionProcessor = (
+    data: ExecutionJobData,
+    context: ExecutionJobContext
+) => Promise<unknown>;
 
 export function createExecutionWorker(
     processor: ExecutionProcessor = processExecution,
@@ -19,7 +27,10 @@ export function createExecutionWorker(
                 throw new Error(`Unknown job: ${job.name}`);
             }
 
-            return processor(job.data);
+            return processor(job.data, {
+                attemptsMade: job.attemptsMade,
+                attempts: job.opts.attempts || 1
+            });
         },
         {
             connection: redisConnection,

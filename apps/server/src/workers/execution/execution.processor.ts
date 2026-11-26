@@ -10,6 +10,7 @@ import {
 import { emitSubmissionUpdate } from '../../infrastructure/socket/emitter.js';
 import { DockerSandbox } from './sandbox/docker.sandbox.ts';
 import { CppCompiler } from './compiler/cpp.compiler.ts';
+import type { ExecutionJobContext } from './execution.worker.ts';
 
 interface ExecutionJobData {
     submissionId: number;
@@ -25,7 +26,13 @@ const verdictMap: Record<ExecutionVerdict, SubmissionStatus> = {
     INTERNAL_ERROR: SubmissionStatus.INTERNAL_ERROR
 };
 
-export async function processExecution({ submissionId }: ExecutionJobData) {
+export async function processExecution(
+    { submissionId }: ExecutionJobData,
+    context: ExecutionJobContext = {
+        attemptsMade: 0,
+        attempts: 1
+    }
+) {
     const em = await getEM();
 
     try {
@@ -134,28 +141,32 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
     } catch (error) {
         console.error('Submission execution failed:', error);
 
-        const submission = await em.findOne(Submission, {
-            id: submissionId
-        });
+        const isFinalAttempt = context.attemptsMade + 1 >= context.attempts;
 
-        if (submission) {
-            submission.status = SubmissionStatus.INTERNAL_ERROR;
-            submission.errorMessage =
-                error instanceof Error
-                    ? error.message
-                    : 'Unknown execution error';
-
-            await em.flush();
-
-            emitSubmissionUpdate(submission.userId, {
-                submissionId: submission.id,
-                status: submission.status,
-                runtime: submission.runtime!,
-                memory: submission.memory!,
-                testCasesPassed: submission.testCasesPassed,
-                totalTestCases: submission.totalTestCases,
-                errorMessage: submission.errorMessage ?? null
+        if (isFinalAttempt) {
+            const submission = await em.findOne(Submission, {
+                id: submissionId
             });
+
+            if (submission) {
+                submission.status = SubmissionStatus.INTERNAL_ERROR;
+                submission.errorMessage =
+                    error instanceof Error
+                        ? error.message
+                        : 'Unknown execution error';
+
+                await em.flush();
+
+                emitSubmissionUpdate(submission.userId, {
+                    submissionId: submission.id,
+                    status: submission.status,
+                    runtime: submission.runtime!,
+                    memory: submission.memory!,
+                    testCasesPassed: submission.testCasesPassed,
+                    totalTestCases: submission.totalTestCases,
+                    errorMessage: submission.errorMessage ?? null
+                });
+            }
         }
 
         throw error;

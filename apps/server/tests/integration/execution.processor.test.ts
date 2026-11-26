@@ -307,4 +307,118 @@ describe('Execution processor integration tests', () => {
         expect(submission?.status).toBe(SubmissionStatus.ACCEPTED);
         expect(emitSubmissionUpdateMock).not.toHaveBeenCalled();
     });
+
+    it('does not mark the submission INTERNAL_ERROR on an intermediate failure', async () => {
+        const em = await getEM();
+
+        await em.nativeDelete(TestCase, {
+            problem: problemId!
+        });
+
+        const submissionId = await createSubmission('int main() { return 0; }');
+
+        await expect(
+            processExecution({ submissionId }, { attemptsMade: 0, attempts: 3 })
+        ).rejects.toThrow('No active judge test cases found');
+
+        const submission = await getSubmission(submissionId);
+
+        expect(submission?.status).toBe(SubmissionStatus.COMPILING);
+        expect(submission?.status).not.toBe(SubmissionStatus.INTERNAL_ERROR);
+
+        expect(getEmittedStatuses()).toEqual([SubmissionStatus.COMPILING]);
+    });
+
+    it('marks the submission INTERNAL_ERROR after the final failed attempt', async () => {
+        const em = await getEM();
+
+        await em.nativeDelete(TestCase, {
+            problem: problemId!
+        });
+
+        const submissionId = await createSubmission('int main() { return 0; }');
+
+        await expect(
+            processExecution({ submissionId }, { attemptsMade: 2, attempts: 3 })
+        ).rejects.toThrow('No active judge test cases found');
+
+        const submission = await getSubmission(submissionId);
+
+        expect(submission?.status).toBe(SubmissionStatus.INTERNAL_ERROR);
+        expect(submission?.errorMessage).toContain(
+            'No active judge test cases found'
+        );
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.INTERNAL_ERROR
+        ]);
+    });
+
+    it('successfully executes a submission after an earlier failed attempt', async () => {
+        const em = await getEM();
+
+        await em.nativeDelete(TestCase, {
+            problem: problemId!
+        });
+
+        const submissionId = await createSubmission(`
+    #include <iostream>
+    using namespace std;
+
+    int main() {
+      int n;
+      cin >> n;
+      cout << n * 2 << endl;
+      return 0;
+    }
+  `);
+
+        // First attempt fails because no active test cases exist.
+        await expect(
+            processExecution({ submissionId }, { attemptsMade: 0, attempts: 3 })
+        ).rejects.toThrow('No active judge test cases found');
+
+        // Restore the test cases before the retry.
+        const problem = await em.findOneOrFail(Problem, {
+            id: problemId!
+        });
+
+        await em.persistAndFlush([
+            em.create(TestCase, {
+                problem,
+                input: '2\n',
+                expectedOutput: '4\n',
+                isSample: true,
+                isActive: true
+            }),
+            em.create(TestCase, {
+                problem,
+                input: '5\n',
+                expectedOutput: '10\n',
+                isSample: false,
+                isActive: true
+            })
+        ]);
+
+        // Second attempt succeeds.
+        const result = await processExecution(
+            { submissionId },
+            { attemptsMade: 1, attempts: 3 }
+        );
+
+        expect(result?.verdict).toBe('ACCEPTED');
+
+        const submission = await getSubmission(submissionId);
+
+        expect(submission?.status).toBe(SubmissionStatus.ACCEPTED);
+        expect(submission?.testCasesPassed).toBe(2);
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.RUNNING,
+            SubmissionStatus.ACCEPTED
+        ]);
+    }, 60000);
 });

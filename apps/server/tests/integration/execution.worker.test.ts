@@ -67,7 +67,13 @@ describe('Execution worker integration', () => {
         await job.waitUntilFinished(queueEvents, 10000);
 
         expect(processor).toHaveBeenCalledTimes(1);
-        expect(processor).toHaveBeenCalledWith({ submissionId: 101 });
+        expect(processor).toHaveBeenCalledWith(
+            { submissionId: 101 },
+            {
+                attemptsMade: 0,
+                attempts: 1
+            }
+        );
     });
 
     it('retries a failed job and succeeds on a subsequent attempt', async () => {

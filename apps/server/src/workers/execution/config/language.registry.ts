@@ -23,11 +23,11 @@ const languageRegistry: Partial<Record<SubmissionLanguage, LanguageConfig>> = {
     },
     [SubmissionLanguage.PYTHON]: {
         image: 'oj-python:local',
-        compiler: () => new PythonCompiler()
+        compiler: (sandbox) => new PythonCompiler(sandbox)
     },
     [SubmissionLanguage.JAVASCRIPT]: {
         image: 'oj-javascript:local',
-        compiler: () => new JavaScriptCompiler()
+        compiler: (sandbox) => new JavaScriptCompiler(sandbox)
     }
 };
 

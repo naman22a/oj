@@ -29,6 +29,37 @@ interface Props {
     problem: ExtendedProblem;
 }
 
+interface PendingSubmission {
+    key: string;
+    slug: string;
+    code: string;
+    language: string;
+}
+
+const getPendingSubmission = (slug: string): PendingSubmission | null => {
+    const stored = sessionStorage.getItem(`pending-submission:${slug}`);
+
+    if (!stored) return null;
+
+    try {
+        return JSON.parse(stored) as PendingSubmission;
+    } catch {
+        sessionStorage.removeItem(`pending-submission:${slug}`);
+        return null;
+    }
+};
+
+const savePendingSubmission = (submission: PendingSubmission) => {
+    sessionStorage.setItem(
+        `pending-submission:${submission.slug}`,
+        JSON.stringify(submission)
+    );
+};
+
+const clearPendingSubmission = (slug: string) => {
+    sessionStorage.removeItem(`pending-submission:${slug}`);
+};
+
 export interface SubmissionUpdate {
     submissionId: number;
     status: SubmissionStatus;
@@ -153,31 +184,80 @@ const Right: React.FC<Props> = ({ problem }) => {
     }, [getAccessToken()]);
 
     const handleSubmit = async () => {
+        if (loading) return;
+
         setLoading(true);
         setResults([]);
+
+        const payload = {
+            code,
+            language
+        };
+
+        let pending = getPendingSubmission(problem.slug);
+
+        // Reuse the key only if this is the exact same submission.
+        if (
+            !pending ||
+            pending.code !== payload.code ||
+            pending.language !== payload.language
+        ) {
+            pending = {
+                key: crypto.randomUUID(),
+                slug: problem.slug,
+                code: payload.code,
+                language: payload.language
+            };
+
+            savePendingSubmission(pending);
+        }
 
         try {
             const res = await API.post<CreateSubmissionResponse>(
                 `/submissions/${problem.slug}`,
+                payload,
                 {
-                    code,
-                    language
+                    headers: {
+                        'Idempotency-Key': pending.key
+                    }
                 }
-                // {
-                //     headers: {
-                //         'Idempotency-Key':
-                //             '7f82c0c4-9b2d-4e92-a2a1-123456789abc'
-                //     }
-                // }
             );
 
             console.log(res.data);
 
             if (!res.data.ok) {
+                clearPendingSubmission(problem.slug);
                 throw new Error(res.data.errors.toString());
             }
+
+            // The backend acknowledged the submission.
+            // Future submissions should receive a new key.
+            clearPendingSubmission(problem.slug);
         } catch (error) {
             console.error(error);
+
+            const response = (
+                error as {
+                    response?: {
+                        status?: number;
+                    };
+                }
+            ).response;
+
+            // Keep the key for network failures and 5xx responses:
+            // the server may have already created the submission.
+            //
+            // Clear it for 4xx responses because the server
+            // explicitly rejected the request.
+            if (
+                response?.status &&
+                response.status >= 400 &&
+                response.status < 500
+            ) {
+                clearPendingSubmission(problem.slug);
+            }
+
+            setLoading(false);
         }
     };
 

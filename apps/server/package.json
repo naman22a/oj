@@ -10,6 +10,7 @@
         "build": "tsc",
         "mg:create": "mikro-orm migration:create",
         "mg:up": "mikro-orm migration:up",
+        "mg:list": "mikro-orm migration:list",
         "seed": "NODE_OPTIONS='--import tsx' mikro-orm seeder:run --class DatabaseSeeder",
         "drop:db": "mikro-orm schema:drop --drop-db --run",
         "test": "vitest run",

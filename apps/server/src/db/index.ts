@@ -15,3 +15,10 @@ export const getEM = async () => {
     const orm = await getORM();
     return orm.em.fork();
 };
+
+export const closeORM = async () => {
+    if (ormInstance) {
+        await ormInstance.close(true);
+        ormInstance = null;
+    }
+};

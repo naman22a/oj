@@ -21,15 +21,17 @@ export async function buildApp() {
         logger:
             process.env.NODE_ENV === 'test'
                 ? false
-                : {
-                      transport: {
-                          target: 'pino-pretty',
-                          options: {
-                              translateTime: 'HH:MM:ss Z',
-                              ignore: 'pid,hostname'
-                          }
-                      }
-                  }
+                : process.env.NODE_ENV === 'production'
+                  ? true
+                  : {
+                        transport: {
+                            target: 'pino-pretty',
+                            options: {
+                                translateTime: 'HH:MM:ss Z',
+                                ignore: 'pid,hostname'
+                            }
+                        }
+                    }
     });
 
     await fastify.register(cors, {

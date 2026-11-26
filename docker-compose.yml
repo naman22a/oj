@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: oj-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oj
+      POSTGRES_USER: oj
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - oj-internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oj -d oj"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: oj-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - oj-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: oj-server:local
+    container_name: oj-migrate
+    restart: "no"
+    env_file:
+      - .env
+    command: ["node", "dist/config/migrate.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - oj-internal
+
+  seed:
+    image: oj-server:local
+    container_name: oj-seed
+    restart: "no"
+    env_file:
+      - .env
+    command: ["node", "dist/db/seed.js"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - oj-internal
+
+  api:
+    image: oj-server:local
+    container_name: oj-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["node", "dist/server.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:5000:5000"
+    networks:
+      - oj-internal
+
+  worker:
+    image: oj-server:local
+    container_name: oj-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: ["node", "dist/workers/execution/execution.worker.main.js"]
+    environment:
+      TMPDIR: /srv/oj/workspaces
+    group_add:
+      - "${DOCKER_GID}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+    volumes:
+      # Docker daemon access: worker only
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      # Must be the same host and container path
+      - /srv/oj/workspaces:/srv/oj/workspaces
+    networks:
+      - oj-internal
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  oj-internal:
+    driver: bridge

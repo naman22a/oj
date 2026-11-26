@@ -24,7 +24,7 @@ const config: Options = {
 
     extensions: [SeedManager],
     seeder: {
-        path: './src/db/seeders',
+        path: './dist/db/seeders',
         pathTs: './src/db/seeders',
         defaultSeeder: 'DatabaseSeeder',
         emit: 'ts'

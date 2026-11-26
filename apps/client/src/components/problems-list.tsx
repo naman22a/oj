@@ -38,11 +38,15 @@ const ProblemsList: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                     {problemsQuery.data?.data.map((problem, index) => (
-                        <TableRow>
+                        <TableRow key={index}>
                             <TableCell>{index + 1}</TableCell>
-                            <Link to={`/problems/${problem.slug}`}>
-                                <TableCell>{problem.title}</TableCell>
-                            </Link>
+
+                            <TableCell>
+                                <Link to={`/problems/${problem.slug}`}>
+                                    {problem.title}
+                                </Link>
+                            </TableCell>
+
                             <TableCell>
                                 {problem.description.slice(0, 100) + '...'}
                             </TableCell>

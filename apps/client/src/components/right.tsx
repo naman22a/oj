@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type {
     CreateSubmissionResponse,
     ExtendedProblem,
@@ -84,110 +84,127 @@ const Right: React.FC<Props> = ({ problem }) => {
     const [loading, setLoading] = useState(false);
     const queryClient = useQueryClient();
     const { language, code, setCode, setLanguage } = useStore();
+    const activeSubmissionIdRef = useRef<number | null>(null);
+    const submittingRef = useRef(false);
+
+    const earlyUpdatesRef = useRef(new Map<number, SubmissionUpdate>());
+
+    const handleSubmissionUpdate = (res: SubmissionUpdate) => {
+        switch (res.status) {
+            case 'Queued':
+                toast.add({ type: 'info', title: 'Queued Submission' });
+                break;
+
+            case 'Compiling':
+                toast.add({ type: 'info', title: 'Compiling Submission' });
+                break;
+
+            case 'Running':
+                toast.add({ type: 'info', title: 'Running Submission' });
+                break;
+
+            case 'Accepted':
+                toast.add({ type: 'success', title: 'Accepted Submission' });
+                break;
+
+            case 'WrongAnswer':
+                toast.add({ type: 'error', title: 'Wrong Answer' });
+                break;
+
+            case 'CompileError':
+                toast.add({ type: 'error', title: 'Compile Error' });
+                break;
+
+            case 'TimeLimitExceeded':
+                toast.add({ type: 'error', title: 'Time Limit Exceeded' });
+                break;
+
+            case 'MemoryLimitExceeded':
+                toast.add({ type: 'error', title: 'Memory Limit Exceeded' });
+                break;
+
+            case 'RuntimeError':
+                toast.add({ type: 'error', title: 'Runtime Error' });
+                break;
+
+            case 'InternalError':
+                toast.add({ type: 'error', title: 'Internal Error' });
+                break;
+        }
+
+        if (res.results !== undefined) {
+            setResults(res.results);
+        }
+
+        const terminalStatuses: SubmissionStatus[] = [
+            'Accepted',
+            'WrongAnswer',
+            'TimeLimitExceeded',
+            'MemoryLimitExceeded',
+            'RuntimeError',
+            'CompileError',
+            'InternalError'
+        ];
+
+        if (terminalStatuses.includes(res.status)) {
+            setLoading(false);
+            activeSubmissionIdRef.current = null;
+        }
+
+        queryClient.invalidateQueries({
+            queryKey: ['submissions']
+        });
+    };
 
     useEffect(() => {
         const token = getAccessToken();
         if (!token) return;
 
         connectSocket();
+
         const socket = getSocket();
         if (!socket) return;
 
-        socket.on('connect', () => {
+        const onConnect = () => {
             console.log('Connected:', socket.id);
-        });
+        };
 
-        socket.on('submission:updated', (res: SubmissionUpdate) => {
-            console.log('[SOCKET] Submission update:', res);
-
+        const onSubmissionUpdate = (res: SubmissionUpdate) => {
             if (!res) return;
 
-            switch (res.status) {
-                case 'Queued':
-                    toast.add({ type: 'info', title: 'Queued Submission' });
-                    break;
+            // Ignore updates from unrelated submissions.
+            if (res.submissionId !== activeSubmissionIdRef.current) {
+                // Buffer updates that arrive before the POST response.
+                if (submittingRef.current) {
+                    earlyUpdatesRef.current.set(res.submissionId, res);
+                }
 
-                case 'Compiling':
-                    toast.add({ type: 'info', title: 'Compiling Submission' });
-                    break;
-
-                case 'Running':
-                    toast.add({ type: 'info', title: 'Running Submission' });
-                    break;
-
-                case 'Accepted':
-                    toast.add({
-                        type: 'success',
-                        title: 'Accepted Submission'
-                    });
-                    break;
-
-                case 'WrongAnswer':
-                    toast.add({ type: 'error', title: 'Wrong Answer' });
-                    break;
-
-                case 'CompileError':
-                    toast.add({ type: 'error', title: 'Compile Error' });
-                    break;
-
-                case 'TimeLimitExceeded':
-                    toast.add({ type: 'error', title: 'Time Limit Exceeded' });
-                    break;
-
-                case 'MemoryLimitExceeded':
-                    toast.add({
-                        type: 'error',
-                        title: 'Memory Limit Exceeded'
-                    });
-                    break;
-
-                case 'RuntimeError':
-                    toast.add({ type: 'error', title: 'Runtime Error' });
-                    break;
-
-                case 'InternalError':
-                    toast.add({ type: 'error', title: 'Internal Error' });
-                    break;
+                return;
             }
 
-            // Update test case results received from backend.
-            if (res.results !== undefined) {
-                console.log('[UI] Updating results:', res.results);
-                setResults(res.results);
-            }
+            handleSubmissionUpdate(res);
+        };
 
-            // Only stop loading when execution has finished.
-            const terminalStatuses = [
-                'Accepted',
-                'WrongAnswer',
-                'TimeLimitExceeded',
-                'MemoryLimitExceeded',
-                'RuntimeError',
-                'CompileError',
-                'InternalError'
-            ];
-
-            if (terminalStatuses.includes(res.status)) {
-                setLoading(false);
-            }
-
-            queryClient.invalidateQueries({
-                queryKey: ['submissions']
-            });
-        });
+        socket.on('connect', onConnect);
+        socket.on('submission:updated', onSubmissionUpdate);
 
         return () => {
+            socket.off('connect', onConnect);
+            socket.off('submission:updated', onSubmissionUpdate);
+
             socket.disconnect();
-            socket.off('connect');
-            socket.off('submission:updated');
         };
     }, [getAccessToken()]);
 
     const handleSubmit = async () => {
-        if (loading) return;
+        if (loading || submittingRef.current) return;
 
         setLoading(true);
         setResults([]);
+
+        submittingRef.current = true;
+        activeSubmissionIdRef.current = null;
+        earlyUpdatesRef.current.clear();
 
         const payload = {
             code,
@@ -223,16 +240,29 @@ const Right: React.FC<Props> = ({ problem }) => {
                 }
             );
 
-            console.log(res.data);
-
             if (!res.data.ok) {
                 clearPendingSubmission(problem.slug);
                 throw new Error(res.data.errors.toString());
             }
 
+            const submissionId = res.data.data.submissionId;
+
             // The backend acknowledged the submission.
-            // Future submissions should receive a new key.
             clearPendingSubmission(problem.slug);
+
+            // Start tracking this specific submission.
+            activeSubmissionIdRef.current = submissionId;
+            submittingRef.current = false;
+
+            // Process an update if the worker emitted one
+            // before the POST response arrived.
+            const earlyUpdate = earlyUpdatesRef.current.get(submissionId);
+
+            earlyUpdatesRef.current.clear();
+
+            if (earlyUpdate) {
+                handleSubmissionUpdate(earlyUpdate);
+            }
         } catch (error) {
             console.error(error);
 
@@ -244,8 +274,8 @@ const Right: React.FC<Props> = ({ problem }) => {
                 }
             ).response;
 
-            // Keep the key for network failures and 5xx responses:
-            // the server may have already created the submission.
+            // Keep the key for network failures and 5xx responses.
+            // The server may already have created the submission.
             //
             // Clear it for 4xx responses because the server
             // explicitly rejected the request.
@@ -256,6 +286,10 @@ const Right: React.FC<Props> = ({ problem }) => {
             ) {
                 clearPendingSubmission(problem.slug);
             }
+
+            submittingRef.current = false;
+            activeSubmissionIdRef.current = null;
+            earlyUpdatesRef.current.clear();
 
             setLoading(false);
         }

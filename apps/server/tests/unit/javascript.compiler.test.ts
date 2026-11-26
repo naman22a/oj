@@ -4,16 +4,20 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { JavaScriptCompiler } from '../../src/workers/execution/compiler/javascript.compiler.js';
+import type { Sandbox } from '../../src/workers/execution/sandbox/sandbox.interface.ts';
+import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.ts';
 
 describe('JavaScriptCompiler', () => {
     let tempDir: string;
     let workspace: string;
     let compiler: JavaScriptCompiler;
+    let sandbox: Sandbox;
 
     beforeEach(async () => {
         tempDir = await mkdtemp(join(tmpdir(), 'oj-javascript-'));
         workspace = join(tempDir, 'workspace');
-        compiler = new JavaScriptCompiler();
+        sandbox = new DockerSandbox();
+        compiler = new JavaScriptCompiler(sandbox);
     });
 
     afterEach(async () => {
@@ -42,14 +46,15 @@ describe('JavaScriptCompiler', () => {
     it('should return the Node.js execution command', async () => {
         const result = await compiler.compile('console.log(42)', workspace);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             success: true,
             stderr: '',
-            timeMs: 0,
-            timedOut: false,
             command: 'node',
-            args: ['/workspace/main.js']
+            args: ['/workspace/main.js'],
+            timedOut: false
         });
+
+        expect(result.timeMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should overwrite an existing main.js', async () => {

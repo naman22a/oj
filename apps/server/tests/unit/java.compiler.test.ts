@@ -8,6 +8,7 @@ import type {
     Sandbox,
     SandboxResult
 } from '../../src/workers/execution/sandbox/sandbox.interface.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 const sandboxExecute = vi.fn();
 
@@ -81,7 +82,7 @@ public class Main {
                 timeoutMs: 15_000,
                 memoryMb: 512,
                 writable: true,
-                image: 'oj-java:local'
+                image: images.java
             }
         );
     });

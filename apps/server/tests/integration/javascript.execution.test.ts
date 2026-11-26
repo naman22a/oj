@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { JavaScriptCompiler } from '../../src/workers/execution/compiler/javascript.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('JavaScript execution integration', () => {
     it('should execute JavaScript with stdin and capture stdout', async () => {
@@ -12,7 +13,7 @@ describe('JavaScript execution integration', () => {
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new JavaScriptCompiler();
+            const compiler = new JavaScriptCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 `const fs = require('node:fs');
@@ -30,7 +31,7 @@ console.log(a + b);`,
                     timeoutMs: 5000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-javascript:local'
+                    image: images.javascript
                 }
             );
 
@@ -49,7 +50,7 @@ console.log(a + b);`,
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new JavaScriptCompiler();
+            const compiler = new JavaScriptCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 'throw new Error("intentional runtime error");',
@@ -65,7 +66,7 @@ console.log(a + b);`,
                     timeoutMs: 5000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-javascript:local'
+                    image: images.javascript
                 }
             );
 
@@ -82,7 +83,7 @@ console.log(a + b);`,
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new JavaScriptCompiler();
+            const compiler = new JavaScriptCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 'while (true) {}',
@@ -98,7 +99,7 @@ console.log(a + b);`,
                     timeoutMs: 1000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-javascript:local'
+                    image: images.javascript
                 }
             );
 

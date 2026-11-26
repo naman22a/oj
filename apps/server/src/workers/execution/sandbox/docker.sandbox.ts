@@ -6,8 +6,9 @@ import type {
     SandboxOptions,
     SandboxResult
 } from './sandbox.interface.js';
+import { images } from '../config/images.ts';
 
-const DEFAULT_IMAGE = 'oj-cpp:local';
+const DEFAULT_IMAGE = images.cpp;
 
 const MAX_OUTPUT_BYTES = 1024 * 1024;
 const DOCKER_COMMAND_TIMEOUT_MS = 10_000;

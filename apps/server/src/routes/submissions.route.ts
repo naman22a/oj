@@ -40,7 +40,7 @@ export default (
             schema: CreateSubmissionSchema,
             config: {
                 rateLimit: {
-                    max: 10,
+                    max: process.env.NODE_ENV === 'test' ? 100_000 : 10,
                     timeWindow: '1 minute'
                 }
             }

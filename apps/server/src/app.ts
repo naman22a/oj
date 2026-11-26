@@ -37,7 +37,7 @@ export async function buildApp() {
     });
 
     await fastify.register(fastifyRateLimit, {
-        global: true,
+        global: process.env.NODE_ENV !== 'test',
         max: 100,
         timeWindow: '1 minute',
         redis

@@ -4,6 +4,7 @@ import { JavaCompiler } from '../../src/workers/execution/compiler/java.compiler
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
 import { ExecutionService } from '../../src/workers/execution/execution.service.ts';
 import { SubmissionStatus } from '../../src/models/enums.ts';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 const sourceCode = `
 import java.util.Scanner;
@@ -27,7 +28,7 @@ describe('Java ExecutionService integration', () => {
     const options = {
         timeLimitMs: 2_000,
         memoryLimitMb: 256,
-        image: 'oj-java:local'
+        image: images.java
     };
 
     it('accepts a Java solution with multiple test cases', async () => {

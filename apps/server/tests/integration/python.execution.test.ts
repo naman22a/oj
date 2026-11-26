@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import { PythonCompiler } from '../../src/workers/execution/compiler/python.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('Python execution integration', () => {
     it('should execute Python code with stdin and capture stdout', async () => {
@@ -12,7 +13,7 @@ describe('Python execution integration', () => {
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new PythonCompiler();
+            const compiler = new PythonCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 'a, b = map(int, input().split())\nprint(a + b)',
@@ -31,7 +32,7 @@ describe('Python execution integration', () => {
                     timeoutMs: 5000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-python:local'
+                    image: images.python
                 }
             );
 
@@ -50,7 +51,7 @@ describe('Python execution integration', () => {
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new PythonCompiler();
+            const compiler = new PythonCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 'raise ValueError("intentional runtime error")',
@@ -66,7 +67,7 @@ describe('Python execution integration', () => {
                     timeoutMs: 5000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-python:local'
+                    image: images.python
                 }
             );
 
@@ -83,7 +84,7 @@ describe('Python execution integration', () => {
 
         try {
             const sandbox = new DockerSandbox();
-            const compiler = new PythonCompiler();
+            const compiler = new PythonCompiler(sandbox);
 
             const compilation = await compiler.compile(
                 'while True:\n    pass',
@@ -99,7 +100,7 @@ describe('Python execution integration', () => {
                     timeoutMs: 1000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-python:local'
+                    image: images.python
                 }
             );
 

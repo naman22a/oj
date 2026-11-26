@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { PythonCompiler } from '../../src/workers/execution/compiler/python.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
 import { ExecutionService } from '../../src/workers/execution/execution.service.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('Python ExecutionService integration', () => {
     let workspace: string;
@@ -20,7 +21,7 @@ describe('Python ExecutionService integration', () => {
         workspace = await mkdtemp(join(tmpdir(), 'oj-python-service-'));
 
         const sandbox = new DockerSandbox();
-        const compiler = new PythonCompiler();
+        const compiler = new PythonCompiler(sandbox);
 
         return new ExecutionService(compiler, sandbox);
     }
@@ -38,7 +39,7 @@ describe('Python ExecutionService integration', () => {
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-python:local'
+                image: images.python
             }
         );
 
@@ -54,7 +55,7 @@ describe('Python ExecutionService integration', () => {
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-python:local'
+                image: images.python
             }
         );
 
@@ -70,7 +71,7 @@ describe('Python ExecutionService integration', () => {
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-python:local'
+                image: images.python
             }
         );
 
@@ -86,7 +87,7 @@ describe('Python ExecutionService integration', () => {
             {
                 timeLimitMs: 1000,
                 memoryLimitMb: 256,
-                image: 'oj-python:local'
+                image: images.python
             }
         );
 

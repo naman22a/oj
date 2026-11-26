@@ -6,6 +6,7 @@ import { JavaCompiler } from '../../src/workers/execution/compiler/java.compiler
 import { PythonCompiler } from '../../src/workers/execution/compiler/python.compiler.ts';
 import type { Sandbox } from '../../src/workers/execution/sandbox/sandbox.interface.ts';
 import { JavaScriptCompiler } from '../../src/workers/execution/compiler/javascript.compiler.ts';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('language registry', () => {
     it('returns the C++ compiler and image', () => {
@@ -16,7 +17,7 @@ describe('language registry', () => {
         const compiler = config.compiler({} as Sandbox);
 
         expect(compiler).toBeInstanceOf(CppCompiler);
-        expect(config.image).toBe('oj-cpp:local');
+        expect(config.image).toBe(images.cpp);
     });
 
     it('returns the Java compiler and image', () => {
@@ -27,13 +28,13 @@ describe('language registry', () => {
         const compiler = config.compiler({} as Sandbox);
 
         expect(compiler).toBeInstanceOf(JavaCompiler);
-        expect(config.image).toBe('oj-java:local');
+        expect(config.image).toBe(images.java);
     });
 
     it('should return Python configuration', () => {
         const config = getLanguageConfig(SubmissionLanguage.PYTHON);
 
-        expect(config.image).toBe('oj-python:local');
+        expect(config.image).toBe(images.python);
         expect(config.compiler).toBeTypeOf('function');
 
         const compiler = config.compiler({} as Sandbox);
@@ -44,7 +45,7 @@ describe('language registry', () => {
     it('should return JavaScript configuration', () => {
         const config = getLanguageConfig(SubmissionLanguage.JAVASCRIPT);
 
-        expect(config.image).toBe('oj-javascript:local');
+        expect(config.image).toBe(images.javascript);
         expect(config.compiler).toBeTypeOf('function');
 
         const compiler = config.compiler({} as Sandbox);

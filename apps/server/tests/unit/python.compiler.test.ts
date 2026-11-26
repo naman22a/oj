@@ -4,16 +4,20 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { PythonCompiler } from '../../src/workers/execution/compiler/python.compiler.js';
+import type { Sandbox } from '../../src/workers/execution/sandbox/sandbox.interface.ts';
+import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.ts';
 
 describe('PythonCompiler', () => {
     let tempDir: string;
     let workspace: string;
     let compiler: PythonCompiler;
+    let sandbox: Sandbox;
 
     beforeEach(async () => {
         tempDir = await mkdtemp(join(tmpdir(), 'oj-python-'));
         workspace = join(tempDir, 'workspace');
-        compiler = new PythonCompiler();
+        sandbox = new DockerSandbox();
+        compiler = new PythonCompiler(sandbox);
     });
 
     afterEach(async () => {
@@ -42,14 +46,15 @@ describe('PythonCompiler', () => {
     it('should return the Python execution command', async () => {
         const result = await compiler.compile('print(42)', workspace);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             success: true,
             stderr: '',
-            timeMs: 0,
-            timedOut: false,
             command: 'python3',
-            args: ['-B', '/workspace/main.py']
+            args: ['-B', '/workspace/main.py'],
+            timedOut: false
         });
+
+        expect(result.timeMs).toBeGreaterThanOrEqual(0);
     });
 
     it('should overwrite an existing main.py', async () => {

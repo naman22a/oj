@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { Compiler, CompileResult } from './compiler.interface.js';
 import type { Sandbox } from '../sandbox/sandbox.interface.js';
+import { images } from '../config/images.ts';
 
 export class CppCompiler implements Compiler {
     constructor(private readonly sandbox: Sandbox) {}
@@ -34,7 +35,7 @@ export class CppCompiler implements Compiler {
                 timeoutMs: 10_000,
                 memoryMb: 512,
                 writable: true,
-                image: 'oj-cpp:local'
+                image: images.cpp
             }
         );
 

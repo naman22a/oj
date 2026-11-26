@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { ExecutionService } from '../../src/workers/execution/execution.service.js';
 import { CppCompiler } from '../../src/workers/execution/compiler/cpp.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 const sandbox = new DockerSandbox();
 const compiler = new CppCompiler(sandbox);
@@ -16,7 +17,7 @@ const executionOptions = {
 function getSandboxContainerIds(): string[] {
     const output = execFileSync(
         'docker',
-        ['ps', '-aq', '--filter', 'ancestor=oj-cpp:local'],
+        ['ps', '-aq', '--filter', `ancestor=${images.cpp}`],
         { encoding: 'utf-8' }
     ).trim();
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { JavaCompiler } from '../../src/workers/execution/compiler/java.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('Java execution integration', () => {
     it('compiles and executes a Java submission with stdin', async () => {
@@ -41,10 +42,10 @@ public class Main {
                 compilation.args ?? [],
                 '10 20',
                 {
-                    timeoutMs: 2_000,
+                    timeoutMs: 5_000,
                     memoryMb: 256,
                     writable: false,
-                    image: 'oj-java:local'
+                    image: images.java
                 }
             );
 

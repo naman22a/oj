@@ -2,8 +2,7 @@ import { join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { Compiler, CompileResult } from './compiler.interface.js';
 import type { Sandbox } from '../sandbox/sandbox.interface.js';
-
-const JAVA_IMAGE = 'oj-java:local';
+import { images } from '../config/images.ts';
 
 export class JavaCompiler implements Compiler {
     constructor(private readonly sandbox: Sandbox) {}
@@ -28,7 +27,7 @@ export class JavaCompiler implements Compiler {
                 timeoutMs: 15_000,
                 memoryMb: 512,
                 writable: true,
-                image: JAVA_IMAGE
+                image: images.java
             }
         );
 

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { JavaScriptCompiler } from '../../src/workers/execution/compiler/javascript.compiler.js';
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
 import { ExecutionService } from '../../src/workers/execution/execution.service.js';
+import { images } from '../../src/workers/execution/config/images.ts';
 
 describe('JavaScript ExecutionService integration', () => {
     let workspace: string;
@@ -20,7 +21,7 @@ describe('JavaScript ExecutionService integration', () => {
         workspace = await mkdtemp(join(tmpdir(), 'oj-javascript-service-'));
 
         const sandbox = new DockerSandbox();
-        const compiler = new JavaScriptCompiler();
+        const compiler = new JavaScriptCompiler(sandbox);
 
         return new ExecutionService(compiler, sandbox);
     }
@@ -40,7 +41,7 @@ console.log(a + b);`,
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-javascript:local'
+                image: images.javascript
             }
         );
 
@@ -56,7 +57,7 @@ console.log(a + b);`,
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-javascript:local'
+                image: images.javascript
             }
         );
 
@@ -72,7 +73,7 @@ console.log(a + b);`,
             {
                 timeLimitMs: 5000,
                 memoryLimitMb: 256,
-                image: 'oj-javascript:local'
+                image: images.javascript
             }
         );
 
@@ -88,7 +89,7 @@ console.log(a + b);`,
             {
                 timeLimitMs: 1000,
                 memoryLimitMb: 256,
-                image: 'oj-javascript:local'
+                image: images.javascript
             }
         );
 

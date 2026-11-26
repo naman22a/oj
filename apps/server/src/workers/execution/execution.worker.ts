@@ -19,7 +19,7 @@ export function createExecutionWorker(
                 throw new Error(`Unknown job: ${job.name}`);
             }
 
-            await processor(job.data);
+            return processor(job.data);
         },
         {
             connection: redisConnection,

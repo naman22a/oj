@@ -167,6 +167,7 @@ describe('Execution worker integration', () => {
         );
 
         expect(secondJob.id).toBe(firstJob.id);
+        expect(await secondJob.getState()).toBe('completed');
         expect(processor).toHaveBeenCalledTimes(1);
     });
 

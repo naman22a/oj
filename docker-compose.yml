@@ -33,7 +33,7 @@ services:
       retries: 5
 
   migrate:
-    image: oj-server:local
+    image: naman22a/oj-server:1.0.0
     container_name: oj-migrate
     restart: "no"
     env_file:
@@ -46,7 +46,7 @@ services:
       - oj-internal
 
   seed:
-    image: oj-server:local
+    image: naman22a/oj-server:1.0.0
     container_name: oj-seed
     restart: "no"
     env_file:
@@ -59,7 +59,7 @@ services:
       - oj-internal
 
   api:
-    image: oj-server:local
+    image: naman22a/oj-server:1.0.0
     container_name: oj-api
     restart: unless-stopped
     env_file:
@@ -80,7 +80,7 @@ services:
       - oj-internal
 
   worker:
-    image: oj-server:local
+    image: naman22a/oj-server:1.0.0
     container_name: oj-worker
     restart: unless-stopped
     env_file:

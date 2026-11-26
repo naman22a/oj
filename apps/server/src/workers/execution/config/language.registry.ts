@@ -6,6 +6,7 @@ import { CppCompiler } from '../compiler/cpp.compiler.js';
 import { JavaCompiler } from '../compiler/java.compiler.js';
 import { PythonCompiler } from '../compiler/python.compiler.ts';
 import { JavaScriptCompiler } from '../compiler/javascript.compiler.js';
+import { images } from './images.ts';
 
 interface LanguageConfig {
     image: string;
@@ -14,19 +15,19 @@ interface LanguageConfig {
 
 const languageRegistry: Partial<Record<SubmissionLanguage, LanguageConfig>> = {
     [SubmissionLanguage.CPP]: {
-        image: 'oj-cpp:local',
+        image: images.cpp,
         compiler: (sandbox) => new CppCompiler(sandbox)
     },
     [SubmissionLanguage.JAVA]: {
-        image: 'oj-java:local',
+        image: images.java,
         compiler: (sandbox) => new JavaCompiler(sandbox)
     },
     [SubmissionLanguage.PYTHON]: {
-        image: 'oj-python:local',
+        image: images.python,
         compiler: (sandbox) => new PythonCompiler(sandbox)
     },
     [SubmissionLanguage.JAVASCRIPT]: {
-        image: 'oj-javascript:local',
+        image: images.javascript,
         compiler: (sandbox) => new JavaScriptCompiler(sandbox)
     }
 };

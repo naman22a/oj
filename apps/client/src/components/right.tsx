@@ -163,6 +163,12 @@ const Right: React.FC<Props> = ({ problem }) => {
                     code,
                     language
                 }
+                // {
+                //     headers: {
+                //         'Idempotency-Key':
+                //             '7f82c0c4-9b2d-4e92-a2a1-123456789abc'
+                //     }
+                // }
             );
 
             console.log(res.data);

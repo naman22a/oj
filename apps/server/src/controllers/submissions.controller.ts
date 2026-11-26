@@ -6,6 +6,7 @@ import { Submission } from '../models/submission.model.ts';
 import { SubmissionStatus } from '../models/enums.ts';
 import { enqueueSubmission } from '../infrastructure/queue/submission.queue.ts';
 import { emitSubmissionUpdate } from '../infrastructure/socket/emitter.ts';
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 // POST /api/submissions/:slug
 export const createSubmission: Fastify.RouteHandler<
@@ -13,51 +14,161 @@ export const createSubmission: Fastify.RouteHandler<
 > = async (req, reply) => {
     const problemSlug = req.params.slug;
     const { code, language } = req.body;
+    const userId = req.userId!;
 
-    // validation
+    // Read and validate Idempotency-Key.
+    const rawKey = req.headers['idempotency-key'];
+
+    if (Array.isArray(rawKey)) {
+        return reply.status(400).send({
+            ok: false,
+            errors: [
+                { field: 'idempotencyKey', message: 'Invalid idempotency key' }
+            ]
+        });
+    }
+
+    const idempotencyKey = rawKey?.trim();
+
+    if (
+        rawKey !== undefined &&
+        (!idempotencyKey || idempotencyKey.length > 128)
+    ) {
+        return reply.status(400).send({
+            ok: false,
+            errors: [
+                {
+                    field: 'idempotencyKey',
+                    message:
+                        'Idempotency key must be between 1 and 128 characters'
+                }
+            ]
+        });
+    }
+
     if (!code.trim()) {
-        return {
+        return reply.status(400).send({
             ok: false,
-            jobId: null,
             errors: [{ field: 'code', message: 'code is required' }]
-        };
+        });
     }
+
     if (!language) {
-        return {
+        return reply.status(400).send({
             ok: false,
-            jobId: null,
             errors: [{ field: 'language', message: 'language is required' }]
-        };
+        });
     }
+
     if (!problemSlug) {
-        return {
+        return reply.status(400).send({
             ok: false,
-            jobId: null,
             errors: [{ field: 'problemId', message: 'problemSlug is required' }]
-        };
+        });
     }
 
     try {
         const em = await getEM();
-        const problemExists = await em.findOne(Problem, { slug: problemSlug });
+        const problem = await em.findOne(Problem, { slug: problemSlug });
 
-        if (!problemExists) {
-            return {
+        if (!problem) {
+            return reply.status(404).send({
                 ok: false,
-                jobId: null,
                 errors: [{ field: 'problemId', message: 'problem not found' }]
-            };
+            });
+        }
+
+        // Check whether this request was already processed.
+        if (idempotencyKey) {
+            const existing = await em.findOne(Submission, {
+                userId,
+                idempotencyKey
+            });
+
+            if (existing) {
+                const sameRequest =
+                    existing.problemId === problem.id &&
+                    existing.code === code &&
+                    existing.language === language;
+
+                if (!sameRequest) {
+                    return reply.status(409).send({
+                        ok: false,
+                        errors: [
+                            {
+                                field: 'idempotencyKey',
+                                message:
+                                    'This idempotency key has already been used with a different request'
+                            }
+                        ]
+                    });
+                }
+
+                return reply.status(202).send({
+                    ok: true,
+                    data: {
+                        submissionId: existing.id,
+                        status: existing.status
+                    }
+                });
+            }
         }
 
         const submission = em.create(Submission, {
-            userId: req.userId!,
+            userId,
             code,
             language,
-            problemId: problemExists.id,
-            status: SubmissionStatus.QUEUED
+            problemId: problem.id,
+            status: SubmissionStatus.QUEUED,
+            idempotencyKey: idempotencyKey!
         });
 
-        await em.persistAndFlush(submission);
+        try {
+            await em.persistAndFlush(submission);
+        } catch (error) {
+            // Handle simultaneous requests using the same key.
+            if (
+                idempotencyKey &&
+                error instanceof UniqueConstraintViolationException
+            ) {
+                const retryEm = await getEM();
+
+                const existing = await retryEm.findOne(Submission, {
+                    userId,
+                    idempotencyKey
+                });
+
+                if (existing) {
+                    const sameRequest =
+                        existing.problemId === problem.id &&
+                        existing.code === code &&
+                        existing.language === language;
+
+                    if (!sameRequest) {
+                        return reply.status(409).send({
+                            ok: false,
+                            errors: [
+                                {
+                                    field: 'idempotencyKey',
+                                    message:
+                                        'This idempotency key has already been used with a different request'
+                                }
+                            ]
+                        });
+                    }
+
+                    return reply.status(202).send({
+                        ok: true,
+                        data: {
+                            submissionId: existing.id,
+                            status: existing.status
+                        }
+                    });
+                }
+            }
+
+            throw error;
+        }
 
         await enqueueSubmission(submission.id);
 
@@ -74,7 +185,8 @@ export const createSubmission: Fastify.RouteHandler<
             }
         });
     } catch (error) {
-        console.error(error);
+        console.error('Submission creation failed:', error);
+
         return reply.status(500).send({
             ok: false,
             errors: [

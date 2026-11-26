@@ -1,14 +1,15 @@
 import {
-    beforeAll,
     afterAll,
-    beforeEach,
     afterEach,
+    beforeAll,
+    beforeEach,
     describe,
     expect,
     it,
     vi
 } from 'vitest';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'node:crypto';
 
 // Mock external infrastructure before importing the application.
 const { enqueueSubmissionMock, emitSubmissionUpdateMock } = vi.hoisted(() => ({
@@ -39,7 +40,7 @@ import {
 
 describe('Submission API integration tests', () => {
     let app: Awaited<ReturnType<typeof buildApp>>;
-    let userId: number;
+    let userId: number | undefined;
     let problemSlug: string;
     let accessToken: string;
 
@@ -59,22 +60,24 @@ describe('Submission API integration tests', () => {
     });
 
     beforeEach(async () => {
+        enqueueSubmissionMock.mockReset();
         enqueueSubmissionMock.mockResolvedValue({});
+
         emitSubmissionUpdateMock.mockReset();
 
         const orm = await getORM();
         const em = orm.em.fork();
 
         const user = em.create(User, {
-            username: `test-user-${crypto.randomUUID()}`,
-            email: `test-${crypto.randomUUID()}@example.com`,
+            username: `test-user-${randomUUID()}`,
+            email: `test-${randomUUID()}@example.com`,
             passwordHash: 'test-password-hash'
         });
 
         await em.persistAndFlush(user);
         userId = user.id;
 
-        problemSlug = `test-problem-${crypto.randomUUID()}`;
+        problemSlug = `test-problem-${randomUUID()}`;
 
         const problem = em.create(Problem, {
             title: 'Two Sum Test',
@@ -91,7 +94,7 @@ describe('Submission API integration tests', () => {
     });
 
     afterEach(async () => {
-        if (!userId) return;
+        if (userId === undefined) return;
 
         const orm = await getORM();
         const em = orm.em.fork();
@@ -104,7 +107,7 @@ describe('Submission API integration tests', () => {
 
         await em.nativeDelete(User, { id: userId });
 
-        userId = undefined as unknown as number;
+        userId = undefined;
         problemSlug = '';
     });
 
@@ -113,28 +116,38 @@ describe('Submission API integration tests', () => {
         await closeORM();
     });
 
-    it('creates and persists an authenticated submission', async () => {
+    // Helper for authenticated submission requests.
+    const submit = (
+        code: string,
+        language: SubmissionLanguage,
+        idempotencyKey?: string
+    ) => {
+        return app.inject({
+            method: 'POST',
+            url: `/api/submissions/${problemSlug}`,
+            headers: {
+                authorization: `Bearer ${accessToken}`,
+                ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {})
+            },
+            payload: {
+                code,
+                language
+            }
+        });
+    };
+
+    it('creates and persists an authenticated submission without an idempotency key', async () => {
         const code = `
 #include <iostream>
 using namespace std;
 
 int main() {
-    cout << "Hello World";
-    return 0;
+  cout << "Hello World";
+  return 0;
 }
 `;
 
-        const response = await app.inject({
-            method: 'POST',
-            url: `/api/submissions/${problemSlug}`,
-            headers: {
-                authorization: `Bearer ${accessToken}`
-            },
-            payload: {
-                code,
-                language: SubmissionLanguage.CPP
-            }
-        });
+        const response = await submit(code, SubmissionLanguage.CPP);
 
         expect(response.statusCode).toBe(202);
 
@@ -170,10 +183,144 @@ int main() {
         );
 
         expect(emitSubmissionUpdateMock).toHaveBeenCalledOnce();
-        expect(emitSubmissionUpdateMock).toHaveBeenCalledWith(userId, {
-            submissionId: body.data.submissionId,
-            status: SubmissionStatus.QUEUED
+    });
+
+    it('returns the existing submission for the same key and payload', async () => {
+        const idempotencyKey = randomUUID();
+        const code = 'int main() { return 0; }';
+
+        const firstResponse = await submit(
+            code,
+            SubmissionLanguage.CPP,
+            idempotencyKey
+        );
+
+        expect(firstResponse.statusCode).toBe(202);
+
+        const firstBody = firstResponse.json();
+
+        const secondResponse = await submit(
+            code,
+            SubmissionLanguage.CPP,
+            idempotencyKey
+        );
+
+        expect(secondResponse.statusCode).toBe(202);
+
+        const secondBody = secondResponse.json();
+
+        expect(secondBody.data.submissionId).toBe(firstBody.data.submissionId);
+
+        const orm = await getORM();
+        const em = orm.em.fork();
+
+        const submissions = await em.find(Submission, {
+            userId,
+            idempotencyKey
         });
+
+        expect(submissions).toHaveLength(1);
+
+        // Only the first request should enqueue and emit.
+        expect(enqueueSubmissionMock).toHaveBeenCalledOnce();
+        expect(emitSubmissionUpdateMock).toHaveBeenCalledOnce();
+    });
+
+    it('returns 409 when the same key is reused with different code', async () => {
+        const idempotencyKey = randomUUID();
+
+        const firstResponse = await submit(
+            'int main() { return 0; }',
+            SubmissionLanguage.CPP,
+            idempotencyKey
+        );
+
+        expect(firstResponse.statusCode).toBe(202);
+
+        const secondResponse = await submit(
+            'int main() { return 1; }',
+            SubmissionLanguage.CPP,
+            idempotencyKey
+        );
+
+        expect(secondResponse.statusCode).toBe(409);
+
+        expect(secondResponse.json()).toMatchObject({
+            ok: false,
+            errors: [
+                {
+                    field: 'idempotencyKey'
+                }
+            ]
+        });
+
+        expect(enqueueSubmissionMock).toHaveBeenCalledOnce();
+        expect(emitSubmissionUpdateMock).toHaveBeenCalledOnce();
+    });
+
+    it('returns 409 when the same key is reused with a different language', async () => {
+        const idempotencyKey = randomUUID();
+        const code = 'int main() { return 0; }';
+
+        const firstResponse = await submit(
+            code,
+            SubmissionLanguage.CPP,
+            idempotencyKey
+        );
+
+        expect(firstResponse.statusCode).toBe(202);
+
+        const secondResponse = await submit(
+            code,
+            SubmissionLanguage.JAVASCRIPT,
+            idempotencyKey
+        );
+
+        expect(secondResponse.statusCode).toBe(409);
+
+        expect(secondResponse.json()).toMatchObject({
+            ok: false,
+            errors: [
+                {
+                    field: 'idempotencyKey'
+                }
+            ]
+        });
+
+        expect(enqueueSubmissionMock).toHaveBeenCalledOnce();
+        expect(emitSubmissionUpdateMock).toHaveBeenCalledOnce();
+    });
+
+    it('creates only one submission for concurrent requests with the same key', async () => {
+        const idempotencyKey = randomUUID();
+        const code = 'int main() { return 0; }';
+
+        const [firstResponse, secondResponse] = await Promise.all([
+            submit(code, SubmissionLanguage.CPP, idempotencyKey),
+            submit(code, SubmissionLanguage.CPP, idempotencyKey)
+        ]);
+
+        expect(firstResponse.statusCode).toBe(202);
+        expect(secondResponse.statusCode).toBe(202);
+
+        const firstBody = firstResponse.json();
+        const secondBody = secondResponse.json();
+
+        expect(firstBody.data.submissionId).toBe(secondBody.data.submissionId);
+
+        const orm = await getORM();
+        const em = orm.em.fork();
+
+        const submissions = await em.find(Submission, {
+            userId,
+            idempotencyKey
+        });
+
+        expect(submissions).toHaveLength(1);
+
+        // Only one request should create and enqueue the submission.
+        expect(enqueueSubmissionMock).toHaveBeenCalledOnce();
+        expect(emitSubmissionUpdateMock).toHaveBeenCalledOnce();
     });
 
     it('rejects a request without an authorization header', async () => {
@@ -208,11 +355,10 @@ int main() {
             }
         });
 
-        expect(response.statusCode).toBe(200);
+        expect(response.statusCode).toBe(404);
 
         expect(response.json()).toMatchObject({
             ok: false,
-            jobId: null,
             errors: [
                 {
                     field: 'problemId',

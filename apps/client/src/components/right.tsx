@@ -24,6 +24,7 @@ import { cn } from 'cn';
 import { outputsMatch } from '../utils';
 import { Separator } from './ui/separator';
 import { ScrollArea } from './ui/scroll-area';
+import axios from 'axios';
 
 interface Props {
     problem: ExtendedProblem;
@@ -60,6 +61,56 @@ const clearPendingSubmission = (slug: string) => {
     sessionStorage.removeItem(`pending-submission:${slug}`);
 };
 
+const getSubmissionErrorMessage = (error: unknown): string => {
+    if (!axios.isAxiosError(error)) {
+        return error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred.';
+    }
+
+    // No HTTP response: network failure, timeout, connection refused, etc.
+    if (!error.response) {
+        return 'Unable to connect to the server. Check your internet connection and try again.';
+    }
+
+    const { status, data } = error.response;
+
+    // Backend validation/application errors.
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+        return data.errors
+            .map((item: { field?: string; message?: string }) =>
+                item.field
+                    ? `${item.field}: ${item.message ?? 'Invalid value'}`
+                    : (item.message ?? 'Invalid request')
+            )
+            .join('\n');
+    }
+
+    // HTTP status fallbacks.
+    switch (status) {
+        case 400:
+            return 'Invalid submission request. Please check your input.';
+        case 401:
+            return 'Your session has expired. Please log in again.';
+        case 403:
+            return 'You are not authorized to submit this solution.';
+        case 404:
+            return 'The requested problem or endpoint was not found.';
+        case 409:
+            return 'A submission conflict occurred. Please try again.';
+        case 429:
+            return 'Too many requests. Please wait before submitting again.';
+        case 500:
+            return 'An internal server error occurred. Please try again later.';
+        case 502:
+        case 503:
+        case 504:
+            return 'The server is temporarily unavailable. Please try again later.';
+        default:
+            return `Submission failed (HTTP ${status}). Please try again.`;
+    }
+};
+
 export interface SubmissionUpdate {
     submissionId: number;
     status: SubmissionStatus;
@@ -81,6 +132,7 @@ const Right: React.FC<Props> = ({ problem }) => {
             expectedOutput: string;
         }[]
     >([]);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const queryClient = useQueryClient();
     const { language, code, setCode, setLanguage } = useStore();
@@ -147,6 +199,7 @@ const Right: React.FC<Props> = ({ problem }) => {
         ];
 
         if (terminalStatuses.includes(res.status)) {
+            setErrorMessage(res.errorMessage || null);
             setLoading(false);
             activeSubmissionIdRef.current = null;
         }
@@ -201,6 +254,7 @@ const Right: React.FC<Props> = ({ problem }) => {
 
         setLoading(true);
         setResults([]);
+        setErrorMessage(null);
 
         submittingRef.current = true;
         activeSubmissionIdRef.current = null;
@@ -264,7 +318,7 @@ const Right: React.FC<Props> = ({ problem }) => {
                 handleSubmissionUpdate(earlyUpdate);
             }
         } catch (error) {
-            console.error(error);
+            console.error('Submission failed:', error);
 
             const response = (
                 error as {
@@ -292,6 +346,12 @@ const Right: React.FC<Props> = ({ problem }) => {
             earlyUpdatesRef.current.clear();
 
             setLoading(false);
+
+            toast.add({
+                type: 'error',
+                title: 'Submission Failed',
+                description: getSubmissionErrorMessage(error)
+            });
         }
     };
 
@@ -366,6 +426,21 @@ const Right: React.FC<Props> = ({ problem }) => {
                         </div>
                     ))}
                 </ScrollArea>
+            )}
+            {errorMessage && (
+                <div className="my-4 rounded-lg border border-red-500/40 bg-[#1e1e1e] overflow-hidden">
+                    <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/30">
+                        <h3 className="text-sm font-semibold text-red-400">
+                            Execution Error
+                        </h3>
+                    </div>
+
+                    <ScrollArea className="max-h-62.5">
+                        <pre className="p-4 text-sm text-red-300 font-mono whitespace-pre-wrap wrap-break-word">
+                            {errorMessage}
+                        </pre>
+                    </ScrollArea>
+                </div>
             )}
         </div>
     );

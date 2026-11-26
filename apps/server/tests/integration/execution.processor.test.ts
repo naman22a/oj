@@ -87,7 +87,7 @@ describe('Execution processor integration tests', () => {
         const em = await getEM();
 
         await em.nativeDelete(Submission, { userId });
-        await em.nativeDelete(Problem, { id: problemId });
+        await em.nativeDelete(Problem, { id: problemId! });
         await em.nativeDelete(User, { id: userId });
 
         userId = undefined;
@@ -122,6 +122,12 @@ describe('Execution processor integration tests', () => {
         return em.findOne(Submission, { id });
     }
 
+    function getEmittedStatuses(): SubmissionStatus[] {
+        return emitSubmissionUpdateMock.mock.calls.map(
+            ([, payload]) => payload.status
+        );
+    }
+
     it('accepts a correct C++ solution', async () => {
         const submissionId = await createSubmission(`
       #include <iostream>
@@ -151,6 +157,12 @@ describe('Execution processor integration tests', () => {
 
         expect(submission?.runtime).toEqual(expect.any(Number));
         expect(submission?.memory).toEqual(expect.any(Number));
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.RUNNING,
+            SubmissionStatus.ACCEPTED
+        ]);
     }, 60000);
 
     it('returns WRONG_ANSWER for incorrect output', async () => {
@@ -173,6 +185,12 @@ describe('Execution processor integration tests', () => {
         expect(submission?.status).toBe(SubmissionStatus.WRONG_ANSWER);
         expect(submission?.testCasesPassed).toBe(0);
         expect(submission?.totalTestCases).toBe(2);
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.RUNNING,
+            SubmissionStatus.WRONG_ANSWER
+        ]);
     }, 60000);
 
     it('returns COMPILE_ERROR for invalid C++ code', async () => {
@@ -191,6 +209,11 @@ describe('Execution processor integration tests', () => {
 
         expect(submission?.status).toBe(SubmissionStatus.COMPILE_ERROR);
         expect(submission?.errorMessage).toBeTruthy();
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.COMPILE_ERROR
+        ]);
     }, 60000);
 
     it('returns TIME_LIMIT_EXCEEDED for an infinite loop', async () => {
@@ -216,6 +239,11 @@ describe('Execution processor integration tests', () => {
         const submission = await getSubmission(submissionId);
 
         expect(submission?.status).toBe(SubmissionStatus.TIME_LIMIT_EXCEEDED);
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.RUNNING,
+            SubmissionStatus.TIME_LIMIT_EXCEEDED
+        ]);
     }, 60000);
 
     it('returns RUNTIME_ERROR when the program exits unsuccessfully', async () => {
@@ -257,6 +285,11 @@ describe('Execution processor integration tests', () => {
         expect(submission?.errorMessage).toContain(
             'No active judge test cases found'
         );
+
+        expect(getEmittedStatuses()).toEqual([
+            SubmissionStatus.COMPILING,
+            SubmissionStatus.INTERNAL_ERROR
+        ]);
     }, 60000);
 
     it('does not reprocess an already completed submission', async () => {

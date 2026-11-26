@@ -1,6 +1,8 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
+import fastifyRateLimit from '@fastify/rate-limit';
+import { redis } from './common/redis.ts';
 
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
@@ -32,6 +34,13 @@ export async function buildApp() {
                             }
                         }
                     }
+    });
+
+    await fastify.register(fastifyRateLimit, {
+        global: true,
+        max: 100,
+        timeWindow: '1 minute',
+        redis
     });
 
     await fastify.register(cors, {

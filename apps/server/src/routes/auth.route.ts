@@ -28,13 +28,37 @@ export default (
     },
     done: (err?: Error) => void
 ) => {
-    fastify.post('/register', { schema: RegisterSchema }, postRegister);
+    fastify.post(
+        '/register',
+        {
+            schema: RegisterSchema,
+            config: {
+                rateLimit: {
+                    max: 5,
+                    timeWindow: '1 hour'
+                }
+            }
+        },
+        postRegister
+    );
     fastify.post(
         '/confirm-email/:token',
         { schema: ConfirmEmailSchema },
         postConfirmEmail
     );
-    fastify.post('/login', { schema: LoginSchema }, postLogin);
+    fastify.post(
+        '/login',
+        {
+            schema: LoginSchema,
+            config: {
+                rateLimit: {
+                    max: 5,
+                    timeWindow: '1 minute'
+                }
+            }
+        },
+        postLogin
+    );
     fastify.post(
         '/logout',
         { schema: LogoutSchema, preHandler: authGuard },

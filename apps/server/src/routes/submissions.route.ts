@@ -36,7 +36,15 @@ export default (
     fastify.get('/', getSubmissionsHistory);
     fastify.post(
         '/:slug',
-        { schema: CreateSubmissionSchema },
+        {
+            schema: CreateSubmissionSchema,
+            config: {
+                rateLimit: {
+                    max: 10,
+                    timeWindow: '1 minute'
+                }
+            }
+        },
         createSubmission
     );
     fastify.get('/:id', getSubmission);

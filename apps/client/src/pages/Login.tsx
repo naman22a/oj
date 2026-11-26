@@ -230,9 +230,25 @@ const Login: React.FC = () => {
                     </form>
                 </CardContent>
                 <CardFooter>
-                    <Field orientation="horizontal">
+                    <Field
+                        orientation="horizontal"
+                        className="flex justify-between"
+                    >
                         <Button type="submit" form="form-login">
                             Login
+                        </Button>
+                        <Button
+                            type="submit"
+                            form="form-login"
+                            variant="outline"
+                            onClick={() =>
+                                onSubmit({
+                                    email: 'test@gmail.com',
+                                    password: 'test123'
+                                })
+                            }
+                        >
+                            Guest Login
                         </Button>
                     </Field>
                 </CardFooter>

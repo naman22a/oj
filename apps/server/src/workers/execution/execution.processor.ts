@@ -8,6 +8,8 @@ import {
     type ExecutionVerdict
 } from './execution.service.ts';
 import { emitSubmissionUpdate } from '../../infrastructure/socket/emitter.js';
+import { DockerSandbox } from './sandbox/docker.sandbox.ts';
+import { CppCompiler } from './compiler/cpp.compiler.ts';
 
 interface ExecutionJobData {
     submissionId: number;
@@ -81,9 +83,13 @@ export async function processExecution({ submissionId }: ExecutionJobData) {
             throw new Error('No active judge test cases found');
         }
 
-        const executionService = new ExecutionService();
+        const sandbox = new DockerSandbox();
+        const executionService = new ExecutionService(
+            new CppCompiler(sandbox),
+            sandbox
+        );
 
-        const result = await executionService.executeCpp(
+        const result = await executionService.execute(
             submission.code,
             testCases.map((testCase) => ({
                 input: testCase.input,

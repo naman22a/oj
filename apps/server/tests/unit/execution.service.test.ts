@@ -4,6 +4,7 @@ import { ExecutionService } from '../../src/workers/execution/execution.service.
 import { DockerSandbox } from '../../src/workers/execution/sandbox/docker.sandbox.js';
 import type { SandboxResult } from '../../src/workers/execution/sandbox/sandbox.interface.js';
 import { SubmissionStatus } from '../../src/models/enums.js';
+import { CppCompiler } from '../../src/workers/execution/compiler/cpp.compiler.js';
 
 const sandboxResult = (
     overrides: Partial<SandboxResult> = {}
@@ -26,8 +27,14 @@ function createService(results: SandboxResult[]) {
         execute.mockResolvedValueOnce(result);
     }
 
+    const sandbox = new DockerSandbox();
+    const executionService = new ExecutionService(
+        new CppCompiler(sandbox),
+        sandbox
+    );
+
     return {
-        service: new ExecutionService(),
+        service: executionService,
         execute
     };
 }
@@ -51,7 +58,7 @@ describe('ExecutionService.executeCpp', () => {
             sandboxResult({ stdout: '4', timeMs: 30, memoryKb: 4096 })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [
                 { input: '1', expectedOutput: '2' },
@@ -74,7 +81,7 @@ describe('ExecutionService.executeCpp', () => {
             sandboxResult({ stdout: 'wrong answer' })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '1', expectedOutput: 'correct answer' }],
             options
@@ -92,7 +99,7 @@ describe('ExecutionService.executeCpp', () => {
             })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '' }],
             options
@@ -106,7 +113,7 @@ describe('ExecutionService.executeCpp', () => {
     it('returns TIME_LIMIT_EXCEEDED when compilation times out', async () => {
         const { service } = createService([sandboxResult({ timedOut: true })]);
 
-        const result = await service.executeCpp(sourceCode, [], options);
+        const result = await service.execute(sourceCode, [], options);
 
         expect(result.verdict).toBe('TIME_LIMIT_EXCEEDED');
     });
@@ -117,7 +124,7 @@ describe('ExecutionService.executeCpp', () => {
             sandboxResult({ timedOut: true, timeMs: 2000 })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '' }],
             options
@@ -132,7 +139,7 @@ describe('ExecutionService.executeCpp', () => {
             sandboxResult({ memoryExceeded: true, memoryKb: 300000 })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '' }],
             options
@@ -151,7 +158,7 @@ describe('ExecutionService.executeCpp', () => {
             })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '' }],
             options
@@ -167,7 +174,7 @@ describe('ExecutionService.executeCpp', () => {
             sandboxResult({ outputExceeded: true })
         ]);
 
-        const result = await service.executeCpp(
+        const result = await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '' }],
             options
@@ -187,7 +194,7 @@ describe('ExecutionService.executeCpp', () => {
             .fn<(status: SubmissionStatus) => Promise<void>>()
             .mockResolvedValue(undefined);
 
-        await service.executeCpp(
+        await service.execute(
             sourceCode,
             [{ input: '', expectedOutput: '42' }],
             options,

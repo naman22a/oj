@@ -3,6 +3,8 @@ export interface CompileResult {
     stderr: string;
     timeMs: number;
     timedOut: boolean;
+    command?: string | undefined;
+    args?: string[] | undefined;
 }
 
 export interface Compiler {

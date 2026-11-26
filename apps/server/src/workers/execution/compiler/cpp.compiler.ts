@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { Compiler, CompileResult } from './compiler.interface.js';
 import type { Sandbox } from '../sandbox/sandbox.interface.js';
@@ -10,7 +11,8 @@ export class CppCompiler implements Compiler {
         workspace: string
     ): Promise<CompileResult> {
         await mkdir(workspace, { recursive: true });
-        await writeFile(`${workspace}/main.cpp`, sourceCode, {
+
+        await writeFile(join(workspace, 'main.cpp'), sourceCode, {
             encoding: 'utf8',
             mode: 0o600
         });
@@ -35,11 +37,19 @@ export class CppCompiler implements Compiler {
             }
         );
 
+        const success =
+            result.exitCode === 0 &&
+            !result.timedOut &&
+            !result.memoryExceeded &&
+            !result.outputExceeded;
+
         return {
-            success: result.exitCode === 0 && !result.timedOut,
+            success,
             stderr: result.stderr,
             timeMs: result.timeMs,
-            timedOut: result.timedOut
+            timedOut: result.timedOut,
+            command: success ? '/workspace/main' : undefined,
+            args: success ? [] : undefined
         };
     }
 }

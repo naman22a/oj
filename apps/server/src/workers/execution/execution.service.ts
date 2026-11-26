@@ -1,9 +1,8 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-
-import { CppCompiler } from './compiler/cpp.compiler.js';
-import { DockerSandbox } from './sandbox/docker.sandbox.js';
+import type { Compiler } from './compiler/compiler.interface.js';
+import type { Sandbox } from './sandbox/sandbox.interface.js';
 import { outputsMatch } from './utils/output-comparator.js';
 import { SubmissionStatus } from '../../models/enums.ts';
 
@@ -40,10 +39,12 @@ export interface ExecutionOptions {
 }
 
 export class ExecutionService {
-    private readonly sandbox = new DockerSandbox();
-    private readonly compiler = new CppCompiler(this.sandbox);
+    constructor(
+        private readonly compiler: Compiler,
+        private readonly sandbox: Sandbox
+    ) {}
 
-    async executeCpp(
+    async execute(
         sourceCode: string,
         testCases: ExecutionTestCase[],
         options: ExecutionOptions,
@@ -70,11 +71,18 @@ export class ExecutionService {
                 };
             }
 
+            if (!compilation.command) {
+                throw new Error(
+                    'Compiler succeeded without providing an execution command'
+                );
+            }
+
             await onStatus?.(SubmissionStatus.RUNNING);
 
             let totalRuntime = 0;
             let peakMemory = 0;
             let passed = 0;
+
             const results: {
                 output: string;
                 expectedOutput: string;
@@ -83,8 +91,8 @@ export class ExecutionService {
             for (const testCase of testCases) {
                 const result = await this.sandbox.execute(
                     workspace,
-                    '/usr/bin/time',
-                    ['-f', '\n__OJ_METRICS__%e %M', '/workspace/main'],
+                    compilation.command,
+                    compilation.args ?? [],
                     testCase.input,
                     {
                         timeoutMs: options.timeLimitMs,
@@ -94,7 +102,9 @@ export class ExecutionService {
                 );
 
                 totalRuntime += result.timeMs;
+
                 peakMemory = Math.max(peakMemory, result.memoryKb ?? 0);
+
                 results.push({
                     output: result.stdout,
                     expectedOutput: testCase.expectedOutput
@@ -129,7 +139,8 @@ export class ExecutionService {
                         memory: peakMemory,
                         testCasesPassed: passed,
                         totalTestCases: testCases.length,
-                        errorMessage: 'Output limit exceeded'
+                        errorMessage: 'Output limit exceeded',
+                        results
                     };
                 }
 
@@ -140,7 +151,8 @@ export class ExecutionService {
                         memory: peakMemory,
                         testCasesPassed: passed,
                         totalTestCases: testCases.length,
-                        errorMessage: result.stderr
+                        errorMessage: result.stderr,
+                        results
                     };
                 }
 

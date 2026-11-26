@@ -1,14 +1,25 @@
 import { spawn as nodeSpawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
+
 import type {
     Sandbox,
     SandboxOptions,
     SandboxResult
-} from './sandbox.interface.ts';
+} from './sandbox.interface.js';
 
 const IMAGE = 'oj-cpp:local';
+
 const MAX_OUTPUT_BYTES = 1024 * 1024;
+const DOCKER_COMMAND_TIMEOUT_MS = 10_000;
+const CONTAINER_CREATE_TIMEOUT_MS = 15_000;
+
 type SpawnFunction = typeof nodeSpawn;
+
+interface ContainerState {
+    OOMKilled: boolean;
+    Error: string;
+    ExitCode: number | null;
+}
 
 export class DockerSandbox implements Sandbox {
     constructor(private readonly spawn: SpawnFunction = nodeSpawn) {}
@@ -20,54 +31,54 @@ export class DockerSandbox implements Sandbox {
         stdin: string,
         options: SandboxOptions
     ): Promise<SandboxResult> {
-        const containerName = `oj-${randomUUID()}`;
-
         const uid = process.getuid?.() ?? 10001;
         const gid = process.getgid?.() ?? 10001;
 
         if (uid === 0) {
-            throw new Error('Execution worker must run as a non-root user');
+            throw new Error('DockerSandbox cannot run from a root process');
         }
 
-        const memoryMb = options.memoryMb ?? 256;
-        const timeoutMs = options.timeoutMs ?? 2000;
+        const memoryMb = options.memoryMb;
+        const timeoutMs = options.timeoutMs;
 
-        if (!Number.isFinite(memoryMb) || memoryMb <= 0) {
-            throw new Error(`Invalid memory limit: ${memoryMb}`);
+        if (!Number.isSafeInteger(memoryMb) || memoryMb <= 0) {
+            throw new Error('Invalid sandbox memory limit');
         }
 
-        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
-            throw new Error(`Invalid timeout: ${timeoutMs}`);
+        if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0) {
+            throw new Error('Invalid sandbox timeout');
         }
 
-        const dockerArgs = [
-            'run',
+        const containerName = `oj-${randomUUID()}`;
 
-            // Keep STDIN open and forward input to container.
+        const mount = [
+            'type=bind',
+            `source=${workspace}`,
+            'target=/workspace',
+            ...(options.writable ? [] : ['readonly'])
+        ].join(',');
+
+        const createArgs = [
+            'create',
             '--interactive',
-
             '--name',
             containerName,
 
-            // Network isolation
             '--network',
             'none',
 
-            // Memory limits (no swap)
             '--memory',
             `${memoryMb}m`,
 
             '--memory-swap',
             `${memoryMb}m`,
 
-            // CPU and process limits
             '--cpus',
             '1',
 
             '--pids-limit',
             '64',
 
-            // Filesystem and privilege restrictions
             '--read-only',
 
             '--cap-drop',
@@ -76,7 +87,6 @@ export class DockerSandbox implements Sandbox {
             '--security-opt',
             'no-new-privileges',
 
-            // Resource limits
             '--ulimit',
             'core=0',
 
@@ -86,214 +96,322 @@ export class DockerSandbox implements Sandbox {
             '--ulimit',
             'fsize=10485760:10485760',
 
-            // Run as non-root
             '--user',
             `${uid}:${gid}`,
 
-            // Temporary writable directory
+            '--env',
+            'HOME=/tmp',
+
             '--tmpfs',
             '/tmp:rw,noexec,nosuid,size=64m',
 
-            // Workspace mount
             '--mount',
-            `type=bind,source=${workspace},target=/workspace${options.writable ? '' : ',readonly'}`,
+            mount,
 
             '--workdir',
             '/workspace',
 
-            // Execution image and command
             IMAGE,
             command,
             ...args
         ];
 
+        let containerId: string;
+
+        try {
+            containerId = (
+                await this.runDockerCommand(
+                    createArgs,
+                    CONTAINER_CREATE_TIMEOUT_MS
+                )
+            ).trim();
+
+            if (!containerId) {
+                throw new Error('Docker did not return a container ID');
+            }
+        } catch (error) {
+            await this.removeContainer(containerName);
+            throw error;
+        }
+
+        return this.startContainer(containerId, stdin, timeoutMs);
+    }
+
+    private async startContainer(
+        containerId: string,
+        stdin: string,
+        timeoutMs: number
+    ): Promise<SandboxResult> {
+        const child = this.spawn(
+            'docker',
+            ['start', '--attach', '--interactive', containerId],
+            {
+                stdio: ['pipe', 'pipe', 'pipe']
+            }
+        );
+
         const startedAt = performance.now();
 
         return new Promise((resolve, reject) => {
-            const child = this.spawn('docker', dockerArgs, {
-                stdio: ['pipe', 'pipe', 'pipe']
-            });
-
-            let stdout = '';
-            let stderr = '';
-            let outputBytes = 0;
-
+            let settled = false;
             let timedOut = false;
             let outputExceeded = false;
-            let settled = false;
+            let outputBytes = 0;
 
-            const killContainer = () => {
-                const killer = this.spawn('docker', ['kill', containerName], {
-                    stdio: 'ignore'
-                });
+            let terminationPromise: Promise<void> | undefined;
 
-                killer.on('error', () => {});
+            const stdoutChunks: Buffer[] = [];
+            const stderrChunks: Buffer[] = [];
+
+            const clearExecutionTimer = () => {
+                clearTimeout(timer);
             };
 
-            const timeout = setTimeout(() => {
+            const terminateContainer = (): Promise<void> => {
+                if (terminationPromise) {
+                    return terminationPromise;
+                }
+
+                terminationPromise = (async () => {
+                    try {
+                        await this.runDockerCommand(['kill', containerId]);
+                    } catch {
+                        // It may already have exited.
+                        // Inspect its state after the attach process closes.
+                    }
+
+                    if (child.exitCode === null && !child.killed) {
+                        child.kill('SIGTERM');
+                    }
+                })();
+
+                return terminationPromise;
+            };
+
+            const timer = setTimeout(() => {
                 timedOut = true;
-                killContainer();
+                void terminateContainer();
             }, timeoutMs);
 
-            const appendOutput = (current: string, chunk: Buffer): string => {
-                if (outputExceeded) {
-                    return current;
+            const appendOutput = (target: Buffer[], chunk: Buffer | string) => {
+                const buffer = Buffer.isBuffer(chunk)
+                    ? chunk
+                    : Buffer.from(chunk);
+
+                const remaining = Math.max(0, MAX_OUTPUT_BYTES - outputBytes);
+
+                if (remaining > 0) {
+                    target.push(buffer.subarray(0, remaining));
                 }
 
-                if (outputBytes + chunk.length > MAX_OUTPUT_BYTES) {
+                outputBytes += buffer.length;
+
+                if (outputBytes > MAX_OUTPUT_BYTES && !outputExceeded) {
                     outputExceeded = true;
-                    killContainer();
-                    return current;
+                    void terminateContainer();
                 }
-
-                outputBytes += chunk.length;
-
-                return current + chunk.toString('utf8');
             };
 
             child.stdout.on('data', (chunk: Buffer) => {
-                stdout = appendOutput(stdout, chunk);
+                appendOutput(stdoutChunks, chunk);
             });
 
             child.stderr.on('data', (chunk: Buffer) => {
-                stderr = appendOutput(stderr, chunk);
+                appendOutput(stderrChunks, chunk);
             });
 
-            child.on('error', (error) => {
-                if (settled) return;
+            // A submitted program may close stdin before all input
+            // has been written. That is not a sandbox failure.
+            child.stdin.on('error', () => {});
+
+            child.on('error', async (error) => {
+                if (settled) {
+                    return;
+                }
 
                 settled = true;
-                clearTimeout(timeout);
+                clearExecutionTimer();
 
-                void this.removeContainer(containerName);
+                try {
+                    await terminateContainer();
+                    await this.removeContainer(containerId);
+                } catch {
+                    // Preserve the original spawn error.
+                }
+
                 reject(error);
             });
 
             child.on('close', async (exitCode) => {
-                console.log('[DockerSandbox] Container:', containerName);
-                console.log('[DockerSandbox] Exit code:', exitCode);
-                console.log('[DockerSandbox] Timed out:', timedOut);
-                console.log('[DockerSandbox] Output exceeded:', outputExceeded);
-                console.log('[DockerSandbox] stdout:', stdout);
-                console.log('[DockerSandbox] stderr:', stderr);
-
-                if (exitCode === 125 || exitCode === 126 || exitCode === 127) {
-                    settled = true;
-                    clearTimeout(timeout);
-
-                    await this.removeContainer(containerName);
-
-                    reject(
-                        new Error(
-                            `Docker execution failed with exit code ${exitCode}:\n${stderr}`
-                        )
-                    );
-
+                if (settled) {
                     return;
                 }
 
-                if (settled) return;
-
                 settled = true;
-                clearTimeout(timeout);
+                clearExecutionTimer();
 
                 try {
-                    const oomKilled = await this.wasOomKilled(containerName);
+                    if (terminationPromise) {
+                        await terminationPromise;
+                    }
 
-                    await this.removeContainer(containerName);
+                    const state = await this.inspectContainer(containerId);
+
+                    await this.removeContainer(containerId);
+
+                    if (state.Error) {
+                        throw new Error(
+                            `Docker execution failed: ${state.Error}`
+                        );
+                    }
+
+                    const stdout = Buffer.concat(stdoutChunks).toString('utf8');
+
+                    const stderr = Buffer.concat(stderrChunks).toString('utf8');
 
                     const metrics = this.parseMetrics(stderr);
 
                     resolve({
                         stdout,
-                        stderr: metrics.cleanStderr,
+                        stderr: metrics.stderr,
                         exitCode,
                         timeMs: metrics.timeMs ?? performance.now() - startedAt,
                         memoryKb: metrics.memoryKb,
                         timedOut,
-                        memoryExceeded: oomKilled,
+                        memoryExceeded: state.OOMKilled,
                         outputExceeded
                     });
                 } catch (error) {
-                    await this.removeContainer(containerName);
+                    await this.removeContainer(containerId);
                     reject(error);
                 }
-            });
-
-            child.stdin.on('error', () => {
-                // The process may exit before consuming all stdin.
             });
 
             child.stdin.end(stdin);
         });
     }
 
-    private parseMetrics(stderr: string) {
+    private parseMetrics(stderr: string): {
+        stderr: string;
+        timeMs: number | null;
+        memoryKb: number | null;
+    } {
         const match = stderr.match(/__OJ_METRICS__(\d+(?:\.\d+)?)\s+(\d+)/);
 
+        if (!match) {
+            return {
+                stderr,
+                timeMs: null,
+                memoryKb: null
+            };
+        }
+
         return {
-            timeMs: match ? Number(match[1]) * 1000 : null,
-            memoryKb: match ? Number(match[2]) : null,
-            cleanStderr: stderr.replace(
-                /\n?__OJ_METRICS__\d+(?:\.\d+)?\s+\d+/,
-                ''
-            )
+            stderr: stderr.replace(match[0], '').trim(),
+            timeMs: Number(match[1]) * 1000,
+            memoryKb: Number(match[2])
         };
     }
 
-    private async wasOomKilled(name: string): Promise<boolean> {
-        try {
-            const output = await this.runDockerCommand([
-                'inspect',
-                '--format={{.State.OOMKilled}}',
-                name
-            ]);
+    private async inspectContainer(
+        containerId: string
+    ): Promise<ContainerState> {
+        const output = await this.runDockerCommand([
+            'inspect',
+            '--format={{json .State}}',
+            containerId
+        ]);
 
-            return output.trim() === 'true';
-        } catch (error) {
-            const message =
-                error instanceof Error ? error.message : String(error);
-
-            if (/no such (object|container)/i.test(message)) {
-                return false;
-            }
-
-            throw error;
-        }
+        return JSON.parse(output) as ContainerState;
     }
 
-    private async removeContainer(name: string): Promise<void> {
-        await this.runDockerCommand(['rm', '-f', name]).catch(() => '');
+    private async removeContainer(containerId: string): Promise<void> {
+        await this.runDockerCommand(['rm', '-f', containerId]).catch(() => '');
     }
 
-    private runDockerCommand(args: string[]): Promise<string> {
+    private runDockerCommand(
+        args: string[],
+        timeoutMs = DOCKER_COMMAND_TIMEOUT_MS
+    ): Promise<string> {
         return new Promise((resolve, reject) => {
-            const child = this.spawn('docker', args);
-
-            let stdout = '';
-            let stderr = '';
-
-            child.stdout.on('data', (chunk) => {
-                stdout += chunk.toString();
+            const child = this.spawn('docker', args, {
+                stdio: ['ignore', 'pipe', 'pipe']
             });
 
-            child.stderr.on('data', (chunk) => {
-                stderr += chunk.toString();
-            });
+            const stdoutChunks: Buffer[] = [];
+            const stderrChunks: Buffer[] = [];
 
-            child.on('error', reject);
+            let outputBytes = 0;
+            let settled = false;
 
-            child.on('close', (code) => {
-                if (code !== 0) {
-                    reject(
-                        new Error(
-                            `Docker command failed (${code}): ${args.join(' ')}\n${stderr}`
-                        )
-                    );
+            const finish = (error?: Error, output = '') => {
+                if (settled) {
                     return;
                 }
 
-                resolve(stdout);
+                settled = true;
+                clearTimeout(timer);
+
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(output);
+                }
+            };
+
+            const append = (target: Buffer[], chunk: Buffer) => {
+                outputBytes += chunk.length;
+
+                if (outputBytes > MAX_OUTPUT_BYTES) {
+                    child.kill('SIGTERM');
+
+                    finish(new Error('Docker command exceeded output limit'));
+
+                    return;
+                }
+
+                target.push(chunk);
+            };
+
+            const timer = setTimeout(() => {
+                child.kill('SIGTERM');
+
+                finish(new Error(`Docker command timed out: ${args[0]}`));
+            }, timeoutMs);
+
+            child.stdout.on('data', (chunk: Buffer) => {
+                append(stdoutChunks, chunk);
+            });
+
+            child.stderr.on('data', (chunk: Buffer) => {
+                append(stderrChunks, chunk);
+            });
+
+            child.on('error', (error) => {
+                finish(error);
+            });
+
+            child.on('close', (code) => {
+                if (settled) {
+                    return;
+                }
+
+                const stdout = Buffer.concat(stdoutChunks).toString('utf8');
+
+                const stderr = Buffer.concat(stderrChunks).toString('utf8');
+
+                if (code !== 0) {
+                    finish(
+                        new Error(
+                            `Docker command failed (${code}): ` +
+                                `${args[0]}\n${stderr}`
+                        )
+                    );
+
+                    return;
+                }
+
+                finish(undefined, stdout);
             });
         });
     }

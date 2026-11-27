@@ -14,6 +14,7 @@ declare global {
             ADMIN_PASSWORD: string;
             ACCESS_TOKEN?: string;
             SUBMISSION_RATE_LIMIT_MAX: string;
+            LOG_LEVEL?: string;
         }
     }
 }

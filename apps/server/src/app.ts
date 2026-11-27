@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
 import fastifyRateLimit from '@fastify/rate-limit';
 import { redis } from './common/redis.ts';
+import { logger } from './infrastructure/logger.ts';
 
 import healthRoutes from './routes/health.route.js';
 import authRoutes from './routes/auth.route.js';
@@ -20,20 +21,7 @@ declare module 'fastify' {
 
 export async function buildApp() {
     const fastify = Fastify({
-        logger:
-            process.env.NODE_ENV === 'test'
-                ? false
-                : process.env.NODE_ENV === 'production'
-                  ? true
-                  : {
-                        transport: {
-                            target: 'pino-pretty',
-                            options: {
-                                translateTime: 'HH:MM:ss Z',
-                                ignore: 'pid,hostname'
-                            }
-                        }
-                    }
+        loggerInstance: logger
     });
 
     fastify.setErrorHandler((error, request, _reply) => {

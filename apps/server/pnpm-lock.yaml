@@ -232,6 +232,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.3
         version: 9.0.3
+      pino:
+        specifier: ^10.4.0
+        version: 10.4.0
       resend:
         specifier: ^6.38.1
         version: 6.38.1

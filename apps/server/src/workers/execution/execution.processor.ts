@@ -1,3 +1,5 @@
+import { performance } from 'node:perf_hooks';
+
 import { getEM } from '../../db/index.ts';
 import { SubmissionStatus } from '../../models/enums.ts';
 import { Problem } from '../../models/problem.model.ts';
@@ -11,6 +13,7 @@ import { emitSubmissionUpdate } from '../../infrastructure/socket/emitter.js';
 import { DockerSandbox } from './sandbox/docker.sandbox.ts';
 import type { ExecutionJobContext } from './execution.worker.ts';
 import { getLanguageConfig } from './config/language.registry.ts';
+import { logger } from '../../infrastructure/logger.js';
 
 interface ExecutionJobData {
     submissionId: number;
@@ -33,7 +36,15 @@ export async function processExecution(
         attempts: 1
     }
 ) {
+    const startedAt = performance.now();
+    const attempt = context.attemptsMade + 1;
+
     const em = await getEM();
+
+    logger.info(
+        { submissionId, attempt, maxAttempts: context.attempts },
+        'Execution job started'
+    );
 
     try {
         const submission = await em.findOne(Submission, {
@@ -55,8 +66,26 @@ export async function processExecution(
         ];
 
         if (terminalStatuses.includes(submission.status)) {
+            logger.info(
+                {
+                    submissionId,
+                    status: submission.status
+                },
+                'Skipping already completed submission'
+            );
+
             return;
         }
+
+        logger.info(
+            {
+                submissionId,
+                userId: submission.userId,
+                problemId: submission.problemId,
+                language: submission.language
+            },
+            'Processing submission'
+        );
 
         submission.status = SubmissionStatus.COMPILING;
         await em.flush();
@@ -90,8 +119,21 @@ export async function processExecution(
             throw new Error('No active judge test cases found');
         }
 
+        logger.info(
+            {
+                submissionId,
+                problemId: problem.id,
+                language: submission.language,
+                testCaseCount: testCases.length,
+                timeLimitMs: problem.timeLimitMs,
+                memoryLimitMb: problem.memoryLimitMb
+            },
+            'Starting code execution'
+        );
+
         const sandbox = new DockerSandbox();
         const languageConfig = getLanguageConfig(submission.language);
+
         const executionService = new ExecutionService(
             languageConfig.compiler(sandbox),
             sandbox
@@ -112,6 +154,14 @@ export async function processExecution(
                 submission.status = status;
                 await em.flush();
 
+                logger.info(
+                    {
+                        submissionId,
+                        status
+                    },
+                    'Submission status updated'
+                );
+
                 emitSubmissionUpdate(submission.userId, {
                     submissionId: submission.id,
                     status: submission.status
@@ -128,6 +178,21 @@ export async function processExecution(
 
         await em.flush();
 
+        const durationMs = Math.round(performance.now() - startedAt);
+
+        logger.info(
+            {
+                submissionId,
+                verdict: result.verdict,
+                runtime: result.runtime,
+                memory: result.memory,
+                testCasesPassed: result.testCasesPassed,
+                totalTestCases: result.totalTestCases,
+                durationMs
+            },
+            'Submission execution completed'
+        );
+
         emitSubmissionUpdate(submission.userId, {
             submissionId: submission.id,
             status: submission.status,
@@ -139,11 +204,41 @@ export async function processExecution(
             results: result.results!
         });
 
+        logger.info(
+            {
+                submissionId,
+                status: submission.status
+            },
+            'Submission result persisted and update emitted'
+        );
+
         return result;
     } catch (error) {
-        console.error('Submission execution failed:', error);
+        const isFinalAttempt = attempt >= context.attempts;
+        const durationMs = Math.round(performance.now() - startedAt);
 
-        const isFinalAttempt = context.attemptsMade + 1 >= context.attempts;
+        logger.error(
+            {
+                err: error,
+                submissionId,
+                attempt,
+                maxAttempts: context.attempts,
+                isFinalAttempt,
+                durationMs
+            },
+            'Submission execution failed'
+        );
+
+        if (!isFinalAttempt) {
+            logger.warn(
+                {
+                    submissionId,
+                    nextAttempt: attempt + 1,
+                    maxAttempts: context.attempts
+                },
+                'Submission execution will be retried'
+            );
+        }
 
         if (isFinalAttempt) {
             const submission = await em.findOne(Submission, {
@@ -168,6 +263,14 @@ export async function processExecution(
                     totalTestCases: submission.totalTestCases,
                     errorMessage: submission.errorMessage ?? null
                 });
+
+                logger.error(
+                    {
+                        submissionId,
+                        status: submission.status
+                    },
+                    'Submission marked as INTERNAL_ERROR after exhausting retries'
+                );
             }
         }
 

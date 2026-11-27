@@ -36,7 +36,7 @@ export async function buildApp() {
                     }
     });
 
-    fastify.setErrorHandler((error, request, reply) => {
+    fastify.setErrorHandler((error, request, _reply) => {
         console.error('========== REQUEST ERROR ==========');
         console.error('URL:', request.method, request.url);
         console.error('ERROR:', error);

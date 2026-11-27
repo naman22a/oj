@@ -84,6 +84,16 @@ jobs:
                   REDIS_URL=redis://127.0.0.1:6380
                   EOF
 
+            - name: Pull execution images
+              run: |
+                  docker pull naman22a/oj-cpp:1.0.0
+                  docker pull naman22a/oj-java:1.0.0
+                  docker pull naman22a/oj-python:1.0.0
+                  docker pull naman22a/oj-javascript:1.0.0
+
+            - name: Verify Docker daemon
+              run: docker info
+
             - name: Build
               run: pnpm build
 

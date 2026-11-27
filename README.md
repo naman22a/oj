@@ -242,13 +242,13 @@ Migrations and seeders run as one-shot services before the API and worker start.
 Check service status:
 
 ```bash
-docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.yml ps
 ```
 
 Inspect application logs:
 
 ```bash
-docker compose -f docker-compose.prod.yml logs -f api worker
+docker compose -f docker-compose.yml logs -f api worker
 ```
 
 Check the API health endpoint:
@@ -273,7 +273,7 @@ pnpm install
 Run backend tests:
 
 ```bash
-pnpm exec vitest run
+pnpm test
 ```
 
 For frontend development:

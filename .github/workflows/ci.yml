@@ -98,7 +98,11 @@ jobs:
               run: pnpm build
 
             - name: Run database migrations
-              run: pnpm exec mikro-orm migration:up
+              run: |
+                  set -a
+                  source .env.test
+                  set +a
+                  pnpm exec mikro-orm migration:up
               env:
                   NODE_ENV: test
 

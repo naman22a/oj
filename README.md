@@ -4,6 +4,8 @@ A self-hosted online judge for submitting, compiling, and executing code in mult
 
 The platform uses a dedicated asynchronous execution worker, Redis-backed job queues, and resource-limited Docker containers to evaluate submissions against predefined test cases.
 
+![Online Judge](./docs/oj.png)
+
 ## Features
 
 - **Multi-language execution** — C++17, Java 21, Python 3, and JavaScript (Node.js).

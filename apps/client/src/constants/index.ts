@@ -6,7 +6,7 @@ export const LANG_CONFIGS: Record<
         image: 'gcc:15',
         compile: ['g++', 'solution.cpp', '-o', 'solution'],
         run: ['./solution'],
-        defaultCode: `#include <iostream>
+        defaultCode: `#include <bits/stdc++.h>
 using namespace std;
 
 int main(){

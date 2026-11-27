@@ -32,7 +32,6 @@ const ProblemsList: React.FC = () => {
                         <TableHead>S.No</TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>Description</TableHead>
-                        <TableHead>Acceptance Rate</TableHead>
                         <TableHead className="text-right">Difficulty</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -50,7 +49,6 @@ const ProblemsList: React.FC = () => {
                             <TableCell>
                                 {problem.description.slice(0, 100) + '...'}
                             </TableCell>
-                            <TableCell>{problem.acceptanceRate}</TableCell>
                             <TableCell
                                 className={cn(
                                     'text-right',

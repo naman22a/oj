@@ -143,3 +143,24 @@ jobs:
                   tags: |
                       naman22a/oj-server:${{ github.sha }}
                       naman22a/oj-server:latest
+
+    deploy:
+        name: Deploy to Production
+        runs-on: self-hosted
+        needs: publish
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+        concurrency:
+            group: oj-production-deploy
+            cancel-in-progress: false
+
+        steps:
+            - name: Deploy latest commit
+              run: |
+                  cd /home/naman/oj
+
+                  export OJ_VERSION="${GITHUB_SHA}"
+
+                  echo "Deploying OJ version: ${OJ_VERSION}"
+
+                  docker compose up -d --remove-orphans

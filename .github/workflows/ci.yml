@@ -97,6 +97,11 @@ jobs:
             - name: Build
               run: pnpm build
 
+            - name: Run database migrations
+              run: pnpm exec mikro-orm migration:up
+              env:
+                  NODE_ENV: test
+
             - name: Run tests
               run: pnpm test
               env:

@@ -27,6 +27,31 @@ jobs:
         name: Build and Test
         runs-on: ubuntu-latest
 
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_DB: oj_test
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5433:5432
+                options: >-
+                    --health-cmd "pg_isready -U postgres -d oj_test"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+            redis:
+                image: redis:7-alpine
+                ports:
+                    - 6380:6379
+                options: >-
+                    --health-cmd "redis-cli ping"
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
         defaults:
             run:
                 working-directory: apps/server
@@ -50,8 +75,19 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Create test environment
+              run: |
+                  cat > .env.test <<'EOF'
+                  NODE_ENV=test
+                  DATABASE_URL=postgresql://postgres:postgres@localhost:5433/oj_test
+                  ACCESS_TOKEN_SECRET=some_secret
+                  REDIS_URL=redis://127.0.0.1:6380
+                  EOF
+
             - name: Build
               run: pnpm build
 
             - name: Run tests
               run: pnpm test
+              env:
+                  NODE_ENV: test

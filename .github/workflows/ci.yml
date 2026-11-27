@@ -107,6 +107,6 @@ jobs:
                   NODE_ENV: test
 
             - name: Run tests
-              run: pnpm test
+              run: pnpm test -- --no-file-parallelism
               env:
                   NODE_ENV: test

@@ -82,6 +82,7 @@ jobs:
                   DATABASE_URL=postgresql://postgres:postgres@localhost:5433/oj_test
                   ACCESS_TOKEN_SECRET=some_secret
                   REDIS_URL=redis://127.0.0.1:6380
+                  CLIENT_URL=http://localhost:3000
                   EOF
 
             - name: Pull execution images

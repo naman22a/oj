@@ -36,6 +36,14 @@ export async function buildApp() {
                     }
     });
 
+    fastify.setErrorHandler((error, request, reply) => {
+        console.error('========== REQUEST ERROR ==========');
+        console.error('URL:', request.method, request.url);
+        console.error('ERROR:', error);
+        console.error('STACK:', (error as any).stack);
+        console.error('===================================');
+    });
+
     await fastify.register(fastifyRateLimit, {
         global: process.env.NODE_ENV !== 'test',
         max: 100,

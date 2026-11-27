@@ -355,6 +355,9 @@ int main() {
             }
         });
 
+        console.log('STATUS:', response.statusCode);
+        console.log('BODY:', response.body);
+
         expect(response.statusCode).toBe(404);
 
         expect(response.json()).toMatchObject({
